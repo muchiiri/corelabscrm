@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import StatusBadge from '@/components/tasks/StatusBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 
@@ -68,7 +69,7 @@ function TaskListPage() {
               >
                 <span className="flex-1 text-text">{task.title}</span>
                 <span className="text-sm text-muted">{task.priority}</span>
-                <span className="text-sm text-muted">{task.status}</span>
+                <StatusBadge status={task.status} />
                 <span className="text-sm text-muted">
                   {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
                 </span>
