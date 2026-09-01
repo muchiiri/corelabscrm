@@ -7,6 +7,7 @@ import CreateWorkspacePage from '@/pages/CreateWorkspacePage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicOnlyRoute from '@/components/auth/PublicOnlyRoute'
 import RequireWorkspace from '@/components/workspace/RequireWorkspace'
+import AppLayout from '@/components/layout/AppLayout'
 
 function App() {
   return (
@@ -29,16 +30,6 @@ function App() {
         }
       />
       <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <RequireWorkspace>
-              <DashboardPage />
-            </RequireWorkspace>
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/workspace/new"
         element={
           <ProtectedRoute>
@@ -46,6 +37,17 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        element={
+          <ProtectedRoute>
+            <RequireWorkspace>
+              <AppLayout />
+            </RequireWorkspace>
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Route>
     </Routes>
   )
 }

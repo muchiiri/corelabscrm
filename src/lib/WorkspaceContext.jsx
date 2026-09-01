@@ -1,13 +1,32 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/AuthContext'
+import { resolveCurrentWorkspace } from '@/lib/resolveCurrentWorkspace'
 
 const WorkspaceContext = createContext(undefined)
+const STORAGE_KEY = 'taskflow.currentWorkspaceId'
+
+function getPersistedWorkspaceId() {
+  try {
+    return localStorage.getItem(STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+function setPersistedWorkspaceId(workspaceId) {
+  try {
+    localStorage.setItem(STORAGE_KEY, workspaceId)
+  } catch {
+    // Private browsing or storage disabled - the selection just won't survive a reload.
+  }
+}
 
 export function WorkspaceProvider({ children }) {
   const { user, loading: authLoading } = useAuth()
   const [workspaces, setWorkspaces] = useState([])
   const [loading, setLoading] = useState(true)
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState(getPersistedWorkspaceId)
 
   const refetch = useCallback(async () => {
     if (!user) {
@@ -35,9 +54,15 @@ export function WorkspaceProvider({ children }) {
     refetch().finally(() => setLoading(false))
   }, [authLoading, refetch])
 
+  function setCurrentWorkspace(workspaceId) {
+    setCurrentWorkspaceId(workspaceId)
+    setPersistedWorkspaceId(workspaceId)
+  }
+
   const value = {
     workspaces,
-    currentWorkspace: workspaces[0] ?? null,
+    currentWorkspace: resolveCurrentWorkspace(workspaces, currentWorkspaceId),
+    setCurrentWorkspace,
     loading: authLoading || loading,
     refetch,
   }
