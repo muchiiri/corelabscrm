@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import TaskForm from '@/components/tasks/TaskForm'
+import { Button } from '@/components/ui/button'
 import { validateTaskForm } from '@/lib/validateTaskForm'
 import { supabase } from '@/lib/supabase'
 
@@ -22,6 +23,9 @@ function TaskEditPage() {
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -96,6 +100,22 @@ function TaskEditPage() {
     navigate('/tasks')
   }
 
+  async function handleDelete() {
+    setDeleteError(null)
+    setIsDeleting(true)
+
+    const { error: deleteFailure } = await supabase.from('tasks').delete().eq('id', id)
+
+    if (deleteFailure) {
+      console.error('Failed to delete task:', deleteFailure)
+      setDeleteError('Something went wrong deleting your task. Please try again.')
+      setIsDeleting(false)
+      return
+    }
+
+    navigate('/tasks')
+  }
+
   if (loading) {
     return <p className="p-8 text-muted">Loading...</p>
   }
@@ -124,6 +144,27 @@ function TaskEditPage() {
         onChange={handleChange}
         onSubmit={handleSubmit}
       />
+
+      <div className="mt-4 max-w-lg">
+        {deleteError && (
+          <p className="mb-2 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{deleteError}</p>
+        )}
+        {isConfirmingDelete ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-text">Delete this task? This can't be undone.</span>
+            <Button type="button" variant="outline" onClick={() => setIsConfirmingDelete(false)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="outline" className="text-danger" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
+        ) : (
+          <Button type="button" variant="outline" className="text-danger" onClick={() => setIsConfirmingDelete(true)}>
+            Delete task
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
