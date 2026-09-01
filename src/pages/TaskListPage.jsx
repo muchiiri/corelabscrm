@@ -61,16 +61,18 @@ function TaskListPage() {
       ) : (
         <ul className="flex flex-col gap-2">
           {tasks.map((task) => (
-            <li
-              key={task.id}
-              className="flex items-center gap-4 rounded-sm border border-border px-4 py-3"
-            >
-              <span className="flex-1 text-text">{task.title}</span>
-              <span className="text-sm text-muted">{task.priority}</span>
-              <span className="text-sm text-muted">{task.status}</span>
-              <span className="text-sm text-muted">
-                {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
-              </span>
+            <li key={task.id}>
+              <Link
+                to={`/tasks/${task.id}/edit`}
+                className="flex items-center gap-4 rounded-sm border border-border px-4 py-3 hover:bg-border"
+              >
+                <span className="flex-1 text-text">{task.title}</span>
+                <span className="text-sm text-muted">{task.priority}</span>
+                <span className="text-sm text-muted">{task.status}</span>
+                <span className="text-sm text-muted">
+                  {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
