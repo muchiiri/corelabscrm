@@ -14,6 +14,12 @@ function Sidebar() {
         <Link to="/dashboard" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
           Dashboard
         </Link>
+        <Link
+          to="/settings/workspace"
+          className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border"
+        >
+          Settings
+        </Link>
       </nav>
 
       <Button type="button" variant="outline" onClick={signOut}>

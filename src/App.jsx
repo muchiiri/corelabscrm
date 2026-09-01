@@ -4,6 +4,7 @@ import LoginPage from '@/pages/LoginPage'
 import SignupPage from '@/pages/SignupPage'
 import DashboardPage from '@/pages/DashboardPage'
 import CreateWorkspacePage from '@/pages/CreateWorkspacePage'
+import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicOnlyRoute from '@/components/auth/PublicOnlyRoute'
 import RequireWorkspace from '@/components/workspace/RequireWorkspace'
@@ -47,6 +48,7 @@ function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/settings/workspace" element={<WorkspaceSettingsPage />} />
       </Route>
     </Routes>
   )

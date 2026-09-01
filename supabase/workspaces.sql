@@ -20,9 +20,11 @@ create table if not exists workspace_members (
 alter table workspaces enable row level security;
 alter table workspace_members enable row level security;
 
--- No insert/update policies: all writes go through create_workspace below
+-- No insert policy: creation goes through create_workspace below
 -- (SECURITY DEFINER, bypasses RLS), the same atomic-write pattern
--- profiles.sql's handle_new_user trigger established.
+-- profiles.sql's handle_new_user trigger established. Renaming (update) is a
+-- single-row write, so it doesn't need that treatment - see the Admin-only
+-- update policy near the bottom of this file.
 drop policy if exists "Members can view their workspaces" on workspaces;
 create policy "Members can view their workspaces"
   on workspaces for select
@@ -38,6 +40,21 @@ drop policy if exists "Users can view their own membership rows" on workspace_me
 create policy "Users can view their own membership rows"
   on workspace_members for select
   using (user_id = auth.uid());
+
+-- Only the workspace's Admin can rename it. No Editor/Viewer members can
+-- exist yet (feature 11 adds that), but this policy is written now so
+-- feature 11 doesn't have to retrofit it - see feature 2c.
+drop policy if exists "Admins can update their workspace" on workspaces;
+create policy "Admins can update their workspace"
+  on workspaces for update
+  using (
+    exists (
+      select 1 from workspace_members
+      where workspace_members.workspace_id = workspaces.id
+      and workspace_members.user_id = auth.uid()
+      and workspace_members.role = 'Admin'
+    )
+  );
 
 create or replace function public.create_workspace(workspace_name text)
 returns workspaces
