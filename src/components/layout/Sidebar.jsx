@@ -14,6 +14,9 @@ function Sidebar() {
         <Link to="/dashboard" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
           Dashboard
         </Link>
+        <Link to="/tasks" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
+          Tasks
+        </Link>
         <Link
           to="/settings/workspace"
           className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border"
