@@ -3,8 +3,10 @@ import HomePage from '@/pages/HomePage'
 import LoginPage from '@/pages/LoginPage'
 import SignupPage from '@/pages/SignupPage'
 import DashboardPage from '@/pages/DashboardPage'
+import CreateWorkspacePage from '@/pages/CreateWorkspacePage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicOnlyRoute from '@/components/auth/PublicOnlyRoute'
+import RequireWorkspace from '@/components/workspace/RequireWorkspace'
 
 function App() {
   return (
@@ -30,7 +32,17 @@ function App() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <RequireWorkspace>
+              <DashboardPage />
+            </RequireWorkspace>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspace/new"
+        element={
+          <ProtectedRoute>
+            <CreateWorkspacePage />
           </ProtectedRoute>
         }
       />
