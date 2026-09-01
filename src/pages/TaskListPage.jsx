@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import StatusBadge from '@/components/tasks/StatusBadge'
+import PriorityBadge from '@/components/tasks/PriorityBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 
 function TaskListPage() {
   const { currentWorkspace } = useWorkspace()
+  const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -60,23 +62,40 @@ function TaskListPage() {
           .
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {tasks.map((task) => (
-            <li key={task.id}>
-              <Link
-                to={`/tasks/${task.id}/edit`}
-                className="flex items-center gap-4 rounded-sm border border-border px-4 py-3 hover:bg-border"
+        <table className="w-full border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-border text-muted">
+              <th className="py-2 pr-4 font-normal">ID</th>
+              <th className="py-2 pr-4 font-normal">Name</th>
+              <th className="py-2 pr-4 font-normal">Priority</th>
+              <th className="py-2 pr-4 font-normal">List</th>
+              <th className="py-2 pr-4 font-normal">Due Date</th>
+              <th className="py-2 pr-4 font-normal">Assignee</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tasks.map((task) => (
+              <tr
+                key={task.id}
+                onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                className="cursor-pointer border-b border-border hover:bg-border"
               >
-                <span className="flex-1 text-text">{task.title}</span>
-                <span className="text-sm text-muted">{task.priority}</span>
-                <StatusBadge status={task.status} />
-                <span className="text-sm text-muted">
+                <td className="py-3 pr-4 text-faint">{task.id.slice(0, 8)}</td>
+                <td className="max-w-xs truncate py-3 pr-4 text-text">{task.title}</td>
+                <td className="py-3 pr-4">
+                  <PriorityBadge priority={task.priority} />
+                </td>
+                <td className="py-3 pr-4">
+                  <StatusBadge status={task.status} />
+                </td>
+                <td className="py-3 pr-4 text-muted">
                   {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                </td>
+                <td className="py-3 pr-4 text-muted">Unassigned</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   )
