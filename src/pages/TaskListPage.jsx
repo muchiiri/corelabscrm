@@ -8,8 +8,20 @@ import PriorityBadge from '@/components/tasks/PriorityBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 import { filterTasks } from '@/lib/filterTasks'
+import { getDatePresetRange } from '@/lib/getDatePresetRange'
+import { isTaskOverdue } from '@/lib/isTaskOverdue'
+import { cn } from '@/lib/utils'
 
-const INITIAL_FILTERS = { search: '', status: 'All', priority: 'All', dueFrom: '', dueTo: '' }
+const INITIAL_FILTERS = {
+  search: '',
+  status: 'All',
+  priority: 'All',
+  dueFrom: '',
+  dueTo: '',
+  overdueOnly: false,
+}
+
+const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'Future']
 
 function TaskListPage() {
   const { currentWorkspace } = useWorkspace()
@@ -48,7 +60,22 @@ function TaskListPage() {
 
   function handleFilterChange(event) {
     const { name, value } = event.target
-    setFilters((prev) => ({ ...prev, [name]: value }))
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+      // Editing the date range manually is an alternative to a preset, not
+      // additive with one - clear any active preset so the typed value wins.
+      ...(name === 'dueFrom' || name === 'dueTo' ? { overdueOnly: false } : {}),
+    }))
+  }
+
+  function handleDatePreset(preset) {
+    const { dueFrom, dueTo } = getDatePresetRange(preset)
+    setFilters((prev) => ({ ...prev, dueFrom, dueTo: dueTo ?? '', overdueOnly: false }))
+  }
+
+  function handleOverduePreset() {
+    setFilters((prev) => ({ ...prev, dueFrom: '', dueTo: '', overdueOnly: true }))
   }
 
   if (loading) {
@@ -123,7 +150,7 @@ function TaskListPage() {
                 id="dueFrom"
                 name="dueFrom"
                 type="date"
-                value={filters.dueFrom}
+                value={filters.dueFrom ? filters.dueFrom.slice(0, 10) : ''}
                 onChange={handleFilterChange}
               />
             </div>
@@ -131,8 +158,30 @@ function TaskListPage() {
               <label htmlFor="dueTo" className="text-xs text-muted">
                 Due to
               </label>
-              <Input id="dueTo" name="dueTo" type="date" value={filters.dueTo} onChange={handleFilterChange} />
+              <Input
+                id="dueTo"
+                name="dueTo"
+                type="date"
+                value={filters.dueTo ? filters.dueTo.slice(0, 10) : ''}
+                onChange={handleFilterChange}
+              />
             </div>
+          </div>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            {DATE_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                type="button"
+                variant="outline"
+                onClick={() => handleDatePreset(preset)}
+              >
+                {preset}
+              </Button>
+            ))}
+            <Button type="button" variant="outline" onClick={handleOverduePreset}>
+              Overdue
+            </Button>
           </div>
 
           {filteredTasks.length === 0 ? (
@@ -164,7 +213,7 @@ function TaskListPage() {
                     <td className="py-3 pr-4">
                       <StatusBadge status={task.status} />
                     </td>
-                    <td className="py-3 pr-4 text-muted">
+                    <td className={cn('py-3 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
                       {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
                     </td>
                     <td className="py-3 pr-4 text-muted">Unassigned</td>

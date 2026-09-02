@@ -1,5 +1,7 @@
-export function filterTasks(tasks, filters = {}) {
-  const { search, status, priority, dueFrom, dueTo } = filters
+import { isTaskOverdue } from './isTaskOverdue.js'
+
+export function filterTasks(tasks, filters = {}, now = new Date()) {
+  const { search, status, priority, dueFrom, dueTo, overdueOnly } = filters
   const searchLower = search ? search.trim().toLowerCase() : ''
   const dueFromDate = dueFrom ? new Date(dueFrom) : null
   const dueToDate = dueTo ? new Date(dueTo) : null
@@ -17,7 +19,11 @@ export function filterTasks(tasks, filters = {}) {
       return false
     }
 
-    if (dueFromDate || dueToDate) {
+    if (overdueOnly) {
+      if (!isTaskOverdue(task, now)) {
+        return false
+      }
+    } else if (dueFromDate || dueToDate) {
       if (!task.due_at) {
         return false
       }
