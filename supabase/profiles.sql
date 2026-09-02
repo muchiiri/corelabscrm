@@ -20,10 +20,39 @@ alter table profiles enable row level security;
 -- RLS), not by the client, so there is no insert policy.
 drop policy if exists "Users can insert their own profile" on profiles;
 
+-- Expanded in feature 9 from "you can see your own profile" to "you can see
+-- your own profile, or anyone's who shares a workspace with you" - needed to
+-- show fellow members' names in the assignee picker.
+--
+-- Uses the same SECURITY DEFINER pattern as workspaces.sql's
+-- is_workspace_member: the membership check runs in a function that bypasses
+-- RLS internally, so reading workspace_members from inside this policy can't
+-- recurse into workspace_members' own select policy.
+create or replace function public.shares_workspace_with(target_user_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from workspace_members wm1
+    join workspace_members wm2 on wm1.workspace_id = wm2.workspace_id
+    where wm1.user_id = auth.uid()
+    and wm2.user_id = target_user_id
+  );
+$$;
+
+grant execute on function public.shares_workspace_with(uuid) to authenticated;
+
 drop policy if exists "Users can view their own profile" on profiles;
-create policy "Users can view their own profile"
+drop policy if exists "Users can view profiles of their workspace members" on profiles;
+create policy "Users can view profiles of their workspace members"
   on profiles for select
-  using (auth.uid() = id);
+  using (
+    auth.uid() = id
+    or public.shares_workspace_with(id)
+  );
 
 drop policy if exists "Users can update their own profile" on profiles;
 create policy "Users can update their own profile"

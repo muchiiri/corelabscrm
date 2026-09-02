@@ -10,7 +10,17 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-function TaskForm({ title, values, errors, submitError, isSubmitting, submitLabel, onChange, onSubmit }) {
+function TaskForm({
+  title,
+  values,
+  errors,
+  submitError,
+  isSubmitting,
+  submitLabel,
+  members = [],
+  onChange,
+  onSubmit,
+}) {
   return (
     <Card className="max-w-lg">
       <CardHeader>
@@ -66,6 +76,17 @@ function TaskForm({ title, values, errors, submitError, isSubmitting, submitLabe
               value={values.dueAt}
               onChange={onChange}
             />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="assigneeId">Assignee</Label>
+            <Select id="assigneeId" name="assigneeId" value={values.assigneeId} onChange={onChange}>
+              <option value="">Unassigned</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name || member.email}
+                </option>
+              ))}
+            </Select>
           </div>
           <Button type="submit" className="mt-2 self-start" disabled={isSubmitting}>
             {submitLabel}

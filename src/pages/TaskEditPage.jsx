@@ -3,6 +3,8 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import TaskForm from '@/components/tasks/TaskForm'
 import { Button } from '@/components/ui/button'
 import { validateTaskForm } from '@/lib/validateTaskForm'
+import { useWorkspace } from '@/lib/WorkspaceContext'
+import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { supabase } from '@/lib/supabase'
 
 function toDatetimeLocalValue(isoString) {
@@ -17,6 +19,8 @@ function toDatetimeLocalValue(isoString) {
 function TaskEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { currentWorkspace } = useWorkspace()
+  const { members } = useWorkspaceMembers(currentWorkspace.id)
   const [values, setValues] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -33,7 +37,7 @@ function TaskEditPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, description, priority, status, due_at')
+        .select('id, title, description, priority, status, due_at, assignee_id')
         .eq('id', id)
         .maybeSingle()
 
@@ -52,6 +56,7 @@ function TaskEditPage() {
           priority: data.priority,
           status: data.status,
           dueAt: toDatetimeLocalValue(data.due_at),
+          assigneeId: data.assignee_id ?? '',
         })
       }
       setLoading(false)
@@ -87,6 +92,7 @@ function TaskEditPage() {
         priority: values.priority,
         status: values.status,
         due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
+        assignee_id: values.assigneeId || null,
       })
       .eq('id', id)
 
@@ -141,6 +147,7 @@ function TaskEditPage() {
         submitError={submitError}
         isSubmitting={isSubmitting}
         submitLabel={isSubmitting ? 'Saving...' : 'Save changes'}
+        members={members}
         onChange={handleChange}
         onSubmit={handleSubmit}
       />

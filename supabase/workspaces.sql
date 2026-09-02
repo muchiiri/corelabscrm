@@ -36,10 +36,39 @@ create policy "Members can view their workspaces"
     )
   );
 
+-- Expanded in feature 9 from "you can see your own row" to "you can see
+-- every member of a workspace you belong to" - needed for the assignee
+-- picker to list a workspace's members, not just the caller's own row.
+--
+-- A plain `exists (select 1 from workspace_members ...)` subquery here would
+-- reference the very table the policy protects, which Postgres evaluates by
+-- re-applying this same policy to the subquery - infinite recursion
+-- (confirmed live: query failed with "infinite recursion detected in policy
+-- for relation workspace_members"). The fix is the same SECURITY DEFINER
+-- pattern already used by handle_new_user and create_workspace: the check
+-- runs in a function that bypasses RLS internally, so the policy never
+-- re-triggers itself.
+create or replace function public.is_workspace_member(target_workspace_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from workspace_members
+    where workspace_id = target_workspace_id
+    and user_id = auth.uid()
+  );
+$$;
+
+grant execute on function public.is_workspace_member(uuid) to authenticated;
+
 drop policy if exists "Users can view their own membership rows" on workspace_members;
-create policy "Users can view their own membership rows"
+drop policy if exists "Members can view their workspace's membership rows" on workspace_members;
+create policy "Members can view their workspace's membership rows"
   on workspace_members for select
-  using (user_id = auth.uid());
+  using (public.is_workspace_member(workspace_id));
 
 -- Only the workspace's Admin can rename it. No Editor/Viewer members can
 -- exist yet (feature 11 adds that), but this policy is written now so

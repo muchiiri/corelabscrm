@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import TaskForm from '@/components/tasks/TaskForm'
 import { validateTaskForm } from '@/lib/validateTaskForm'
 import { useWorkspace } from '@/lib/WorkspaceContext'
+import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { supabase } from '@/lib/supabase'
 
 const INITIAL_VALUES = {
@@ -11,11 +12,13 @@ const INITIAL_VALUES = {
   priority: 'Medium',
   status: 'Todo',
   dueAt: '',
+  assigneeId: '',
 }
 
 function CreateTaskPage() {
   const navigate = useNavigate()
   const { currentWorkspace } = useWorkspace()
+  const { members } = useWorkspaceMembers(currentWorkspace.id)
   const [values, setValues] = useState(INITIAL_VALUES)
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
@@ -44,6 +47,7 @@ function CreateTaskPage() {
       priority: values.priority,
       status: values.status,
       due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
+      assignee_id: values.assigneeId || null,
     })
 
     if (insertError) {
@@ -65,6 +69,7 @@ function CreateTaskPage() {
         submitError={submitError}
         isSubmitting={isSubmitting}
         submitLabel={isSubmitting ? 'Creating...' : 'Create task'}
+        members={members}
         onChange={handleChange}
         onSubmit={handleSubmit}
       />

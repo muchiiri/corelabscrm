@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import StatusBadge from '@/components/tasks/StatusBadge'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
+import { Avatar } from '@/components/ui/avatar'
 import { useWorkspace } from '@/lib/WorkspaceContext'
+import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { supabase } from '@/lib/supabase'
 import { filterTasks } from '@/lib/filterTasks'
 import { getDatePresetRange } from '@/lib/getDatePresetRange'
@@ -25,6 +27,7 @@ const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'Future']
 
 function TaskListPage() {
   const { currentWorkspace } = useWorkspace()
+  const { members } = useWorkspaceMembers(currentWorkspace.id)
   const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,7 +39,7 @@ function TaskListPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at')
+        .select('id, title, priority, status, due_at, assignee_id')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
@@ -83,6 +86,7 @@ function TaskListPage() {
   }
 
   const filteredTasks = filterTasks(tasks, filters)
+  const membersById = new Map(members.map((member) => [member.id, member]))
 
   return (
     <div className="p-8">
@@ -199,26 +203,38 @@ function TaskListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks.map((task) => (
-                  <tr
-                    key={task.id}
-                    onClick={() => navigate(`/tasks/${task.id}/edit`)}
-                    className="cursor-pointer border-b border-border hover:bg-border"
-                  >
-                    <td className="py-3 pr-4 text-faint">{task.id.slice(0, 8)}</td>
-                    <td className="max-w-xs truncate py-3 pr-4 text-text">{task.title}</td>
-                    <td className="py-3 pr-4">
-                      <PriorityBadge priority={task.priority} />
-                    </td>
-                    <td className="py-3 pr-4">
-                      <StatusBadge status={task.status} />
-                    </td>
-                    <td className={cn('py-3 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
-                      {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
-                    </td>
-                    <td className="py-3 pr-4 text-muted">Unassigned</td>
-                  </tr>
-                ))}
+                {filteredTasks.map((task) => {
+                  const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
+                  return (
+                    <tr
+                      key={task.id}
+                      onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                      className="cursor-pointer border-b border-border hover:bg-border"
+                    >
+                      <td className="py-3 pr-4 text-faint">{task.id.slice(0, 8)}</td>
+                      <td className="max-w-xs truncate py-3 pr-4 text-text">{task.title}</td>
+                      <td className="py-3 pr-4">
+                        <PriorityBadge priority={task.priority} />
+                      </td>
+                      <td className="py-3 pr-4">
+                        <StatusBadge status={task.status} />
+                      </td>
+                      <td className={cn('py-3 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
+                        {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {assignee ? (
+                          <span className="flex items-center gap-2 text-text">
+                            <Avatar name={assignee.name} email={assignee.email} />
+                            {assignee.name || assignee.email}
+                          </span>
+                        ) : (
+                          <span className="text-muted">Unassigned</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}
