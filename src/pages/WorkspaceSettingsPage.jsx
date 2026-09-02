@@ -15,22 +15,21 @@ import { validateWorkspaceName } from '@/lib/validateWorkspaceName'
 import { validateAddMemberForm } from '@/lib/validateAddMemberForm'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
-import { useAuth } from '@/lib/AuthContext'
+import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 
 const ADD_MEMBER_INITIAL_VALUES = { email: '', role: 'Editor' }
 
 function WorkspaceSettingsPage() {
   const { currentWorkspace, refetch } = useWorkspace()
-  const { user } = useAuth()
   const { members, refetch: refetchMembers } = useWorkspaceMembers(currentWorkspace?.id)
+  const { role: myRole } = useMyWorkspaceRole(currentWorkspace?.id)
   const [name, setName] = useState(currentWorkspace?.name ?? '')
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const myRole = members.find((member) => member.id === user?.id)?.role
   const isAdmin = myRole === 'Admin'
 
   const [addMemberValues, setAddMemberValues] = useState(ADD_MEMBER_INITIAL_VALUES)

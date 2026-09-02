@@ -6,6 +6,7 @@ import { validateTaskForm } from '@/lib/validateTaskForm'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
+import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 
 function toDatetimeLocalValue(isoString) {
@@ -23,6 +24,8 @@ function TaskEditPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
+  const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
+  const readOnly = myRole === 'Viewer'
   const [values, setValues] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -183,28 +186,31 @@ function TaskEditPage() {
         onCreateTag={createTag}
         onChange={handleChange}
         onSubmit={handleSubmit}
+        readOnly={readOnly}
       />
 
-      <div className="mt-4 max-w-lg">
-        {deleteError && (
-          <p className="mb-2 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{deleteError}</p>
-        )}
-        {isConfirmingDelete ? (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-text">Delete this task? This can't be undone.</span>
-            <Button type="button" variant="outline" onClick={() => setIsConfirmingDelete(false)}>
-              Cancel
+      {!readOnly && (
+        <div className="mt-4 max-w-lg">
+          {deleteError && (
+            <p className="mb-2 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{deleteError}</p>
+          )}
+          {isConfirmingDelete ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-text">Delete this task? This can't be undone.</span>
+              <Button type="button" variant="outline" onClick={() => setIsConfirmingDelete(false)}>
+                Cancel
+              </Button>
+              <Button type="button" variant="outline" className="text-danger" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="outline" className="text-danger" onClick={() => setIsConfirmingDelete(true)}>
+              Delete task
             </Button>
-            <Button type="button" variant="outline" className="text-danger" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </Button>
-          </div>
-        ) : (
-          <Button type="button" variant="outline" className="text-danger" onClick={() => setIsConfirmingDelete(true)}>
-            Delete task
-          </Button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

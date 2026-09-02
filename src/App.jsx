@@ -11,6 +11,7 @@ import TaskEditPage from '@/pages/TaskEditPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicOnlyRoute from '@/components/auth/PublicOnlyRoute'
 import RequireWorkspace from '@/components/workspace/RequireWorkspace'
+import RequireEditor from '@/components/workspace/RequireEditor'
 import AppLayout from '@/components/layout/AppLayout'
 
 function App() {
@@ -52,7 +53,14 @@ function App() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/tasks" element={<TaskListPage />} />
-        <Route path="/tasks/new" element={<CreateTaskPage />} />
+        <Route
+          path="/tasks/new"
+          element={
+            <RequireEditor>
+              <CreateTaskPage />
+            </RequireEditor>
+          }
+        />
         <Route path="/tasks/:id/edit" element={<TaskEditPage />} />
         <Route path="/settings/workspace" element={<WorkspaceSettingsPage />} />
       </Route>

@@ -23,6 +23,7 @@ function TaskForm({
   onCreateTag,
   onChange,
   onSubmit,
+  readOnly = false,
 }) {
   return (
     <Card className="max-w-lg">
@@ -43,17 +44,24 @@ function TaskForm({
               value={values.title}
               onChange={onChange}
               aria-invalid={Boolean(errors.title)}
+              disabled={readOnly}
             />
             {errors.title && <p className="text-xs text-danger">{errors.title}</p>}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="description">Description</Label>
-            <Textarea id="description" name="description" value={values.description} onChange={onChange} />
+            <Textarea
+              id="description"
+              name="description"
+              value={values.description}
+              onChange={onChange}
+              disabled={readOnly}
+            />
           </div>
           <div className="flex gap-4">
             <div className="flex flex-1 flex-col gap-1.5">
               <Label htmlFor="priority">Priority</Label>
-              <Select id="priority" name="priority" value={values.priority} onChange={onChange}>
+              <Select id="priority" name="priority" value={values.priority} onChange={onChange} disabled={readOnly}>
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
                 <option value="Low">Low</option>
@@ -61,7 +69,7 @@ function TaskForm({
             </div>
             <div className="flex flex-1 flex-col gap-1.5">
               <Label htmlFor="status">Status</Label>
-              <Select id="status" name="status" value={values.status} onChange={onChange}>
+              <Select id="status" name="status" value={values.status} onChange={onChange} disabled={readOnly}>
                 <option value="Todo">Todo</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Blocked">Blocked</option>
@@ -78,11 +86,12 @@ function TaskForm({
               type="datetime-local"
               value={values.dueAt}
               onChange={onChange}
+              disabled={readOnly}
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="assigneeId">Assignee</Label>
-            <Select id="assigneeId" name="assigneeId" value={values.assigneeId} onChange={onChange}>
+            <Select id="assigneeId" name="assigneeId" value={values.assigneeId} onChange={onChange} disabled={readOnly}>
               <option value="">Unassigned</option>
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
@@ -98,11 +107,14 @@ function TaskForm({
               selectedTagIds={values.tagIds}
               onChange={(tagIds) => onChange({ target: { name: 'tagIds', value: tagIds } })}
               onCreateTag={onCreateTag}
+              readOnly={readOnly}
             />
           </div>
-          <Button type="submit" className="mt-2 self-start" disabled={isSubmitting}>
-            {submitLabel}
-          </Button>
+          {!readOnly && (
+            <Button type="submit" className="mt-2 self-start" disabled={isSubmitting}>
+              {submitLabel}
+            </Button>
+          )}
         </form>
       </CardContent>
     </Card>

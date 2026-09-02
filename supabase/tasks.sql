@@ -31,36 +31,43 @@ create policy "Members can view their workspace's tasks"
     )
   );
 
+-- Feature 11b: Admin and Editor can write; Viewer is read-only (select above
+-- stays unrestricted). Extends the existing cross-table workspace_members
+-- check already on these policies - no new helper needed, no recursion risk
+-- (this table isn't subquerying itself).
 drop policy if exists "Members can create tasks in their workspace" on tasks;
-create policy "Members can create tasks in their workspace"
+create policy "Editors can create tasks in their workspace"
   on tasks for insert
   with check (
     exists (
       select 1 from workspace_members
       where workspace_members.workspace_id = tasks.workspace_id
       and workspace_members.user_id = auth.uid()
+      and workspace_members.role in ('Admin', 'Editor')
     )
   );
 
 drop policy if exists "Members can update their workspace's tasks" on tasks;
-create policy "Members can update their workspace's tasks"
+create policy "Editors can update their workspace's tasks"
   on tasks for update
   using (
     exists (
       select 1 from workspace_members
       where workspace_members.workspace_id = tasks.workspace_id
       and workspace_members.user_id = auth.uid()
+      and workspace_members.role in ('Admin', 'Editor')
     )
   );
 
 drop policy if exists "Members can delete their workspace's tasks" on tasks;
-create policy "Members can delete their workspace's tasks"
+create policy "Editors can delete their workspace's tasks"
   on tasks for delete
   using (
     exists (
       select 1 from workspace_members
       where workspace_members.workspace_id = tasks.workspace_id
       and workspace_members.user_id = auth.uid()
+      and workspace_members.role in ('Admin', 'Editor')
     )
   );
 

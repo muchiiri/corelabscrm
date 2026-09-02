@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
+import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 import { filterTasks } from '@/lib/filterTasks'
 import { getDatePresetRange } from '@/lib/getDatePresetRange'
@@ -29,6 +30,8 @@ const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'Future']
 function TaskListPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
+  const canWrite = myRole !== 'Viewer'
   const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [tagsByTaskId, setTagsByTaskId] = useState({})
@@ -130,18 +133,26 @@ function TaskListPage() {
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-heading font-semibold text-text">Tasks</h1>
-        <Button asChild>
-          <Link to="/tasks/new">New task</Link>
-        </Button>
+        {canWrite && (
+          <Button asChild>
+            <Link to="/tasks/new">New task</Link>
+          </Button>
+        )}
       </div>
 
       {tasks.length === 0 ? (
         <p className="text-muted">
-          No tasks yet.{' '}
-          <Link to="/tasks/new" className="text-secondary hover:underline">
-            Create your first one
-          </Link>
-          .
+          {canWrite ? (
+            <>
+              No tasks yet.{' '}
+              <Link to="/tasks/new" className="text-secondary hover:underline">
+                Create your first one
+              </Link>
+              .
+            </>
+          ) : (
+            'No tasks yet.'
+          )}
         </p>
       ) : (
         <>

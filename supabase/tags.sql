@@ -36,14 +36,17 @@ create policy "Members can view their workspace's tags"
     )
   );
 
+-- Feature 11b: Admin and Editor can write; Viewer is read-only (select
+-- above stays unrestricted).
 drop policy if exists "Members can create tags in their workspace" on tags;
-create policy "Members can create tags in their workspace"
+create policy "Editors can create tags in their workspace"
   on tags for insert
   with check (
     exists (
       select 1 from workspace_members
       where workspace_members.workspace_id = tags.workspace_id
       and workspace_members.user_id = auth.uid()
+      and workspace_members.role in ('Admin', 'Editor')
     )
   );
 
@@ -61,8 +64,9 @@ create policy "Members can view their workspace's task tags"
     )
   );
 
+-- Feature 11b: Admin and Editor can write; Viewer is read-only.
 drop policy if exists "Members can tag tasks in their workspace" on task_tags;
-create policy "Members can tag tasks in their workspace"
+create policy "Editors can tag tasks in their workspace"
   on task_tags for insert
   with check (
     exists (
@@ -70,11 +74,12 @@ create policy "Members can tag tasks in their workspace"
       join workspace_members on workspace_members.workspace_id = tasks.workspace_id
       where tasks.id = task_tags.task_id
       and workspace_members.user_id = auth.uid()
+      and workspace_members.role in ('Admin', 'Editor')
     )
   );
 
 drop policy if exists "Members can untag tasks in their workspace" on task_tags;
-create policy "Members can untag tasks in their workspace"
+create policy "Editors can untag tasks in their workspace"
   on task_tags for delete
   using (
     exists (
@@ -82,5 +87,6 @@ create policy "Members can untag tasks in their workspace"
       join workspace_members on workspace_members.workspace_id = tasks.workspace_id
       where tasks.id = task_tags.task_id
       and workspace_members.user_id = auth.uid()
+      and workspace_members.role in ('Admin', 'Editor')
     )
   );

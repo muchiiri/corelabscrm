@@ -20,7 +20,7 @@ const SWATCH_CLASS = {
   purple: 'bg-tag-purple-text',
 }
 
-function TagPicker({ tags, selectedTagIds, onChange, onCreateTag }) {
+function TagPicker({ tags, selectedTagIds, onChange, onCreateTag, readOnly = false }) {
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState('gray')
   const [error, setError] = useState(null)
@@ -65,43 +65,45 @@ function TagPicker({ tags, selectedTagIds, onChange, onCreateTag }) {
         <div className="flex flex-col gap-1.5">
           {tags.map((tag) => (
             <label key={tag.id} className="flex items-center gap-2">
-              <Checkbox checked={selectedTagIds.includes(tag.id)} onChange={() => toggle(tag.id)} />
+              <Checkbox checked={selectedTagIds.includes(tag.id)} onChange={() => toggle(tag.id)} disabled={readOnly} />
               <TagBadge name={tag.name} color={tag.color} />
             </label>
           ))}
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5">
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            placeholder="New tag name"
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-            aria-invalid={Boolean(error)}
-          />
-          <Button type="button" variant="outline" onClick={handleCreate} disabled={isCreating}>
-            {isCreating ? 'Adding...' : 'Add'}
-          </Button>
-        </div>
-        <div className="flex gap-1.5">
-          {TAG_COLORS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              aria-label={`${color} tag color`}
-              onClick={() => setNewColor(color)}
-              className={cn(
-                'h-5 w-5 rounded-full border-2',
-                SWATCH_CLASS[color],
-                newColor === color ? 'border-text' : 'border-transparent',
-              )}
+      {!readOnly && (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              placeholder="New tag name"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              aria-invalid={Boolean(error)}
             />
-          ))}
+            <Button type="button" variant="outline" onClick={handleCreate} disabled={isCreating}>
+              {isCreating ? 'Adding...' : 'Add'}
+            </Button>
+          </div>
+          <div className="flex gap-1.5">
+            {TAG_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                aria-label={`${color} tag color`}
+                onClick={() => setNewColor(color)}
+                className={cn(
+                  'h-5 w-5 rounded-full border-2',
+                  SWATCH_CLASS[color],
+                  newColor === color ? 'border-text' : 'border-transparent',
+                )}
+              />
+            ))}
+          </div>
+          {error && <p className="text-xs text-danger">{error}</p>}
         </div>
-        {error && <p className="text-xs text-danger">{error}</p>}
-      </div>
+      )}
     </div>
   )
 }
