@@ -1,4 +1,4 @@
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { EMAIL_PATTERN } from './emailPattern.js'
 
 export function validateSignupForm({ name, email, password, confirmPassword }) {
   const errors = {}

@@ -109,3 +109,105 @@ end;
 $$;
 
 grant execute on function public.create_workspace(text) to authenticated;
+
+-- Feature 11a: add/remove workspace members. Both writes go through these
+-- SECURITY DEFINER RPCs rather than raw insert/delete policies on
+-- workspace_members - add_workspace_member needs to bypass profiles' RLS to
+-- look up an invitee who doesn't share a workspace with the caller yet, and
+-- routing remove the same way keeps both the authorization check and the
+-- last-Admin guard in one place with a clear raised error, instead of a
+-- silent RLS-denied no-op.
+create or replace function public.is_workspace_admin(target_workspace_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from workspace_members
+    where workspace_id = target_workspace_id
+    and user_id = auth.uid()
+    and role = 'Admin'
+  );
+$$;
+
+grant execute on function public.is_workspace_admin(uuid) to authenticated;
+
+create or replace function public.add_workspace_member(
+  target_workspace_id uuid,
+  member_email text,
+  member_role text
+)
+returns workspace_members
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  target_user_id uuid;
+  new_member workspace_members;
+begin
+  if not public.is_workspace_admin(target_workspace_id) then
+    raise exception 'Only a workspace Admin can add members';
+  end if;
+
+  if member_role not in ('Admin', 'Editor', 'Viewer') then
+    raise exception 'Invalid role';
+  end if;
+
+  select id into target_user_id from profiles where email = member_email;
+  if target_user_id is null then
+    raise exception 'No account found with that email';
+  end if;
+
+  if exists (
+    select 1 from workspace_members
+    where workspace_id = target_workspace_id and user_id = target_user_id
+  ) then
+    raise exception 'This person is already a member of this workspace';
+  end if;
+
+  insert into workspace_members (workspace_id, user_id, role)
+  values (target_workspace_id, target_user_id, member_role)
+  returning * into new_member;
+
+  return new_member;
+end;
+$$;
+
+grant execute on function public.add_workspace_member(uuid, text, text) to authenticated;
+
+create or replace function public.remove_workspace_member(
+  target_workspace_id uuid,
+  target_user_id uuid
+)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  admin_count int;
+begin
+  if not public.is_workspace_admin(target_workspace_id) then
+    raise exception 'Only a workspace Admin can remove members';
+  end if;
+
+  select count(*) into admin_count
+  from workspace_members
+  where workspace_id = target_workspace_id and role = 'Admin';
+
+  if admin_count <= 1 and exists (
+    select 1 from workspace_members
+    where workspace_id = target_workspace_id
+    and user_id = target_user_id
+    and role = 'Admin'
+  ) then
+    raise exception 'Cannot remove the last Admin of a workspace';
+  end if;
+
+  delete from workspace_members
+  where workspace_id = target_workspace_id and user_id = target_user_id;
+end;
+$$;
+
+grant execute on function public.remove_workspace_member(uuid, uuid) to authenticated;
