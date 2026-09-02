@@ -6,6 +6,7 @@ import { validateTaskForm } from '@/lib/validateTaskForm'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
+import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 
@@ -24,6 +25,7 @@ function TaskEditPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
+  const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const readOnly = myRole === 'Viewer'
   const [values, setValues] = useState(null)
@@ -42,7 +44,7 @@ function TaskEditPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, description, priority, status, due_at, assignee_id')
+        .select('id, title, description, priority, status, due_at, assignee_id, project_id')
         .eq('id', id)
         .maybeSingle()
 
@@ -77,6 +79,7 @@ function TaskEditPage() {
         status: data.status,
         dueAt: toDatetimeLocalValue(data.due_at),
         assigneeId: data.assignee_id ?? '',
+        projectId: data.project_id ?? '',
         tagIds: (taskTagRows ?? []).map((row) => row.tag_id),
       })
       setLoading(false)
@@ -113,6 +116,7 @@ function TaskEditPage() {
         status: values.status,
         due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
         assignee_id: values.assigneeId || null,
+        project_id: values.projectId || null,
       })
       .eq('id', id)
 
@@ -183,6 +187,7 @@ function TaskEditPage() {
         submitLabel={isSubmitting ? 'Saving...' : 'Save changes'}
         members={members}
         tags={tags}
+        projects={projects}
         onCreateTag={createTag}
         onChange={handleChange}
         onSubmit={handleSubmit}

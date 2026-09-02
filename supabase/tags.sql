@@ -39,6 +39,7 @@ create policy "Members can view their workspace's tags"
 -- Feature 11b: Admin and Editor can write; Viewer is read-only (select
 -- above stays unrestricted).
 drop policy if exists "Members can create tags in their workspace" on tags;
+drop policy if exists "Editors can create tags in their workspace" on tags;
 create policy "Editors can create tags in their workspace"
   on tags for insert
   with check (
@@ -66,6 +67,7 @@ create policy "Members can view their workspace's task tags"
 
 -- Feature 11b: Admin and Editor can write; Viewer is read-only.
 drop policy if exists "Members can tag tasks in their workspace" on task_tags;
+drop policy if exists "Editors can tag tasks in their workspace" on task_tags;
 create policy "Editors can tag tasks in their workspace"
   on task_tags for insert
   with check (
@@ -79,6 +81,7 @@ create policy "Editors can tag tasks in their workspace"
   );
 
 drop policy if exists "Members can untag tasks in their workspace" on task_tags;
+drop policy if exists "Editors can untag tasks in their workspace" on task_tags;
 create policy "Editors can untag tasks in their workspace"
   on task_tags for delete
   using (

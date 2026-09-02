@@ -13,10 +13,13 @@ create table if not exists tasks (
   updated_at timestamptz not null default now()
 );
 
--- project_id, client_id, recurrence_rule, and snoozed_until are deliberately
--- absent - features 12, 13, 19, and 20 each add their own column via
+-- client_id, recurrence_rule, and snoozed_until are deliberately absent -
+-- features 13, 19, and 20 each add their own column via
 -- `alter table tasks add column ...` when they land.
 alter table tasks add column if not exists assignee_id uuid references auth.users(id) on delete set null;
+
+-- Run this after supabase/projects.sql (project_id references projects).
+alter table tasks add column if not exists project_id uuid references projects(id) on delete set null;
 
 alter table tasks enable row level security;
 
@@ -36,6 +39,7 @@ create policy "Members can view their workspace's tasks"
 -- check already on these policies - no new helper needed, no recursion risk
 -- (this table isn't subquerying itself).
 drop policy if exists "Members can create tasks in their workspace" on tasks;
+drop policy if exists "Editors can create tasks in their workspace" on tasks;
 create policy "Editors can create tasks in their workspace"
   on tasks for insert
   with check (
@@ -48,6 +52,7 @@ create policy "Editors can create tasks in their workspace"
   );
 
 drop policy if exists "Members can update their workspace's tasks" on tasks;
+drop policy if exists "Editors can update their workspace's tasks" on tasks;
 create policy "Editors can update their workspace's tasks"
   on tasks for update
   using (
@@ -60,6 +65,7 @@ create policy "Editors can update their workspace's tasks"
   );
 
 drop policy if exists "Members can delete their workspace's tasks" on tasks;
+drop policy if exists "Editors can delete their workspace's tasks" on tasks;
 create policy "Editors can delete their workspace's tasks"
   on tasks for delete
   using (

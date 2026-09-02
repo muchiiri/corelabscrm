@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
+import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 import { filterTasks } from '@/lib/filterTasks'
@@ -30,6 +31,7 @@ const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'Future']
 function TaskListPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
   const navigate = useNavigate()
@@ -44,7 +46,7 @@ function TaskListPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at, assignee_id')
+        .select('id, title, priority, status, due_at, assignee_id, project_id')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
@@ -128,6 +130,7 @@ function TaskListPage() {
 
   const filteredTasks = filterTasks(tasks, filters)
   const membersById = new Map(members.map((member) => [member.id, member]))
+  const projectsById = new Map(projects.map((project) => [project.id, project]))
 
   return (
     <div className="p-8">
@@ -249,12 +252,14 @@ function TaskListPage() {
                   <th className="py-2 pr-4 font-normal">List</th>
                   <th className="py-2 pr-4 font-normal">Due Date</th>
                   <th className="py-2 pr-4 font-normal">Assignee</th>
+                  <th className="py-2 pr-4 font-normal">Project</th>
                   <th className="py-2 pr-4 font-normal">Tags</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTasks.map((task) => {
                   const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
+                  const project = task.project_id ? projectsById.get(task.project_id) : null
                   return (
                     <tr
                       key={task.id}
@@ -282,6 +287,7 @@ function TaskListPage() {
                           <span className="text-muted">Unassigned</span>
                         )}
                       </td>
+                      <td className="py-3 pr-4 text-muted">{project ? project.name : 'No project'}</td>
                       <td className="py-3 pr-4">
                         <div className="flex flex-wrap gap-1">
                           {(tagsByTaskId[task.id] ?? []).map((tag) => (
