@@ -20,6 +20,9 @@ function Sidebar() {
         <Link to="/projects" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
           Projects
         </Link>
+        <Link to="/clients" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
+          Clients
+        </Link>
         <Link
           to="/settings/workspace"
           className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border"

@@ -10,6 +10,8 @@ import CreateTaskPage from '@/pages/CreateTaskPage'
 import TaskEditPage from '@/pages/TaskEditPage'
 import ProjectsPage from '@/pages/ProjectsPage'
 import ProjectOverviewPage from '@/pages/ProjectOverviewPage'
+import ClientsPage from '@/pages/ClientsPage'
+import ClientDetailPage from '@/pages/ClientDetailPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicOnlyRoute from '@/components/auth/PublicOnlyRoute'
 import RequireWorkspace from '@/components/workspace/RequireWorkspace'
@@ -66,6 +68,8 @@ function App() {
         <Route path="/tasks/:id/edit" element={<TaskEditPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:id" element={<ProjectOverviewPage />} />
+        <Route path="/clients" element={<ClientsPage />} />
+        <Route path="/clients/:id" element={<ClientDetailPage />} />
         <Route path="/settings/workspace" element={<WorkspaceSettingsPage />} />
       </Route>
     </Routes>
