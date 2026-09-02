@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import TagPicker from '@/components/tags/TagPicker'
 
 function TaskForm({
   title,
@@ -18,6 +19,8 @@ function TaskForm({
   isSubmitting,
   submitLabel,
   members = [],
+  tags = [],
+  onCreateTag,
   onChange,
   onSubmit,
 }) {
@@ -87,6 +90,15 @@ function TaskForm({
                 </option>
               ))}
             </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Tags</Label>
+            <TagPicker
+              tags={tags}
+              selectedTagIds={values.tagIds}
+              onChange={(tagIds) => onChange({ target: { name: 'tagIds', value: tagIds } })}
+              onCreateTag={onCreateTag}
+            />
           </div>
           <Button type="submit" className="mt-2 self-start" disabled={isSubmitting}>
             {submitLabel}

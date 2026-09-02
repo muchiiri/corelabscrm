@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { validateTaskForm } from '@/lib/validateTaskForm'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
+import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { supabase } from '@/lib/supabase'
 
 function toDatetimeLocalValue(isoString) {
@@ -21,6 +22,7 @@ function TaskEditPage() {
   const navigate = useNavigate()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const [values, setValues] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -49,16 +51,31 @@ function TaskEditPage() {
           console.error('Failed to load task:', error)
         }
         setNotFound(true)
-      } else {
-        setValues({
-          title: data.title,
-          description: data.description ?? '',
-          priority: data.priority,
-          status: data.status,
-          dueAt: toDatetimeLocalValue(data.due_at),
-          assigneeId: data.assignee_id ?? '',
-        })
+        setLoading(false)
+        return
       }
+
+      const { data: taskTagRows, error: taskTagsError } = await supabase
+        .from('task_tags')
+        .select('tag_id')
+        .eq('task_id', id)
+
+      if (cancelled) {
+        return
+      }
+      if (taskTagsError) {
+        console.error('Failed to load task tags:', taskTagsError)
+      }
+
+      setValues({
+        title: data.title,
+        description: data.description ?? '',
+        priority: data.priority,
+        status: data.status,
+        dueAt: toDatetimeLocalValue(data.due_at),
+        assigneeId: data.assignee_id ?? '',
+        tagIds: (taskTagRows ?? []).map((row) => row.tag_id),
+      })
       setLoading(false)
     }
 
@@ -101,6 +118,20 @@ function TaskEditPage() {
       setSubmitError('Something went wrong saving your task. Please try again.')
       setIsSubmitting(false)
       return
+    }
+
+    // Delete-and-reinsert rather than diffing - simpler and just as correct
+    // given how few tags a task typically carries.
+    const { error: clearTagsError } = await supabase.from('task_tags').delete().eq('task_id', id)
+    if (clearTagsError) {
+      console.error('Failed to update tags:', clearTagsError)
+    } else if (values.tagIds.length > 0) {
+      const { error: tagInsertError } = await supabase
+        .from('task_tags')
+        .insert(values.tagIds.map((tagId) => ({ task_id: id, tag_id: tagId })))
+      if (tagInsertError) {
+        console.error('Failed to update tags:', tagInsertError)
+      }
     }
 
     navigate('/tasks')
@@ -148,6 +179,8 @@ function TaskEditPage() {
         isSubmitting={isSubmitting}
         submitLabel={isSubmitting ? 'Saving...' : 'Save changes'}
         members={members}
+        tags={tags}
+        onCreateTag={createTag}
         onChange={handleChange}
         onSubmit={handleSubmit}
       />

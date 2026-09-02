@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/select'
 import StatusBadge from '@/components/tasks/StatusBadge'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
 import { Avatar } from '@/components/ui/avatar'
+import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { supabase } from '@/lib/supabase'
@@ -30,6 +31,7 @@ function TaskListPage() {
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
+  const [tagsByTaskId, setTagsByTaskId] = useState({})
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState(INITIAL_FILTERS)
 
@@ -49,8 +51,44 @@ function TaskListPage() {
       if (error) {
         console.error('Failed to load tasks:', error)
         setTasks([])
+        setTagsByTaskId({})
+        setLoading(false)
+        return
+      }
+
+      setTasks(data)
+
+      const taskIds = data.map((task) => task.id)
+      if (taskIds.length === 0) {
+        setTagsByTaskId({})
+        setLoading(false)
+        return
+      }
+
+      // task_tags.tag_id has a real FK to tags.id, so this can use a single
+      // PostgREST embed - unlike useWorkspaceMembers' two-query client join,
+      // which exists only because workspace_members.user_id lacks a
+      // profiles FK.
+      const { data: taskTagRows, error: taskTagsError } = await supabase
+        .from('task_tags')
+        .select('task_id, tags(id, name, color)')
+        .in('task_id', taskIds)
+
+      if (cancelled) {
+        return
+      }
+      if (taskTagsError) {
+        console.error('Failed to load task tags:', taskTagsError)
+        setTagsByTaskId({})
       } else {
-        setTasks(data)
+        const grouped = {}
+        for (const row of taskTagRows) {
+          if (!grouped[row.task_id]) {
+            grouped[row.task_id] = []
+          }
+          grouped[row.task_id].push(row.tags)
+        }
+        setTagsByTaskId(grouped)
       }
       setLoading(false)
     }
@@ -200,6 +238,7 @@ function TaskListPage() {
                   <th className="py-2 pr-4 font-normal">List</th>
                   <th className="py-2 pr-4 font-normal">Due Date</th>
                   <th className="py-2 pr-4 font-normal">Assignee</th>
+                  <th className="py-2 pr-4 font-normal">Tags</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,6 +270,13 @@ function TaskListPage() {
                         ) : (
                           <span className="text-muted">Unassigned</span>
                         )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <div className="flex flex-wrap gap-1">
+                          {(tagsByTaskId[task.id] ?? []).map((tag) => (
+                            <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+                          ))}
+                        </div>
                       </td>
                     </tr>
                   )

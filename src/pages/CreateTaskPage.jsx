@@ -4,6 +4,7 @@ import TaskForm from '@/components/tasks/TaskForm'
 import { validateTaskForm } from '@/lib/validateTaskForm'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
+import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { supabase } from '@/lib/supabase'
 
 const INITIAL_VALUES = {
@@ -13,12 +14,14 @@ const INITIAL_VALUES = {
   status: 'Todo',
   dueAt: '',
   assigneeId: '',
+  tagIds: [],
 }
 
 function CreateTaskPage() {
   const navigate = useNavigate()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const [values, setValues] = useState(INITIAL_VALUES)
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
@@ -40,21 +43,37 @@ function CreateTaskPage() {
     setSubmitError(null)
     setIsSubmitting(true)
 
-    const { error: insertError } = await supabase.from('tasks').insert({
-      workspace_id: currentWorkspace.id,
-      title: values.title,
-      description: values.description || null,
-      priority: values.priority,
-      status: values.status,
-      due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
-      assignee_id: values.assigneeId || null,
-    })
+    const { data: newTask, error: insertError } = await supabase
+      .from('tasks')
+      .insert({
+        workspace_id: currentWorkspace.id,
+        title: values.title,
+        description: values.description || null,
+        priority: values.priority,
+        status: values.status,
+        due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
+        assignee_id: values.assigneeId || null,
+      })
+      .select('id')
+      .single()
 
     if (insertError) {
       console.error('Failed to create task:', insertError)
       setSubmitError('Something went wrong creating your task. Please try again.')
       setIsSubmitting(false)
       return
+    }
+
+    // Best-effort, not atomic with the task insert above - a partial failure
+    // here just means reopening the task and re-adding tags, not worth an
+    // RPC's complexity for this feature.
+    if (values.tagIds.length > 0) {
+      const { error: tagInsertError } = await supabase
+        .from('task_tags')
+        .insert(values.tagIds.map((tagId) => ({ task_id: newTask.id, tag_id: tagId })))
+      if (tagInsertError) {
+        console.error('Failed to save tags:', tagInsertError)
+      }
     }
 
     navigate('/tasks')
@@ -70,6 +89,8 @@ function CreateTaskPage() {
         isSubmitting={isSubmitting}
         submitLabel={isSubmitting ? 'Creating...' : 'Create task'}
         members={members}
+        tags={tags}
+        onCreateTag={createTag}
         onChange={handleChange}
         onSubmit={handleSubmit}
       />
