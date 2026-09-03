@@ -7,6 +7,7 @@ import StatusBadge from '@/components/tasks/StatusBadge'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
 import TaskSnoozeControl from '@/components/tasks/TaskSnoozeControl'
 import { Avatar } from '@/components/ui/avatar'
+import { Checkbox } from '@/components/ui/checkbox'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
@@ -43,6 +44,7 @@ function TaskListPage() {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [snoozeError, setSnoozeError] = useState(null)
+  const [completeError, setCompleteError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -141,6 +143,28 @@ function TaskListPage() {
     }
   }
 
+  async function handleComplete(taskId, isChecked) {
+    setCompleteError(null)
+    const previousTasks = tasks
+    const newStatus = isChecked ? 'Done' : 'Todo'
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)))
+
+    // .select().single() turns a Viewer's RLS-filtered write into a real
+    // error (PGRST116) instead of a silent zero-row success, so a denied
+    // write actually reaches the rollback/error-banner path below.
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: newStatus })
+      .eq('id', taskId)
+      .select()
+      .single()
+    if (error) {
+      console.error('Failed to update task status:', error)
+      setTasks(previousTasks)
+      setCompleteError('Something went wrong updating that task. Please try again.')
+    }
+  }
+
   if (loading) {
     return <p className="p-8 text-muted">Loading...</p>
   }
@@ -163,6 +187,9 @@ function TaskListPage() {
 
       {snoozeError && (
         <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{snoozeError}</p>
+      )}
+      {completeError && (
+        <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{completeError}</p>
       )}
 
       {tasks.length === 0 ? (
@@ -268,6 +295,7 @@ function TaskListPage() {
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted">
+                  <th className="py-2 pr-4 font-normal">Done</th>
                   <th className="py-2 pr-4 font-normal">ID</th>
                   <th className="py-2 pr-4 font-normal">Name</th>
                   <th className="py-2 pr-4 font-normal">Priority</th>
@@ -291,6 +319,18 @@ function TaskListPage() {
                       onClick={() => navigate(`/tasks/${task.id}/edit`)}
                       className="cursor-pointer border-b border-border hover:bg-border"
                     >
+                      <td className="py-3 pr-4">
+                        {canWrite && (
+                          <Checkbox
+                            checked={task.status === 'Done'}
+                            onChange={(event) => {
+                              event.stopPropagation()
+                              handleComplete(task.id, event.target.checked)
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                          />
+                        )}
+                      </td>
                       <td className="py-3 pr-4 text-faint">{task.id.slice(0, 8)}</td>
                       <td className="max-w-xs truncate py-3 pr-4 text-text">{task.title}</td>
                       <td className="py-3 pr-4">
