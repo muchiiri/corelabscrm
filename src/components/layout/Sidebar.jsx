@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/AuthContext'
 import WorkspaceSwitcher from '@/components/workspace/WorkspaceSwitcher'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 
 function Sidebar() {
   const { signOut } = useAuth()
@@ -37,9 +38,12 @@ function Sidebar() {
         </Link>
       </nav>
 
-      <Button type="button" variant="outline" onClick={signOut}>
-        Sign out
-      </Button>
+      <div className="flex items-center justify-between gap-2">
+        <ThemeToggle />
+        <Button type="button" variant="outline" onClick={signOut}>
+          Sign out
+        </Button>
+      </div>
     </aside>
   )
 }
