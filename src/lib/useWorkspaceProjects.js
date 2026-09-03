@@ -42,10 +42,10 @@ export function useWorkspaceProjects(workspaceId) {
     }
   }, [workspaceId])
 
-  async function createProject(name) {
+  async function createProject(name, clientId) {
     const { data, error } = await supabase
       .from('projects')
-      .insert({ workspace_id: workspaceId, name: name.trim() })
+      .insert({ workspace_id: workspaceId, name: name.trim(), client_id: clientId || null })
       .select('id, name')
       .single()
 

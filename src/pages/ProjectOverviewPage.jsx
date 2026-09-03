@@ -5,6 +5,7 @@ import PriorityBadge from '@/components/tasks/PriorityBadge'
 import { Avatar } from '@/components/ui/avatar'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
+import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
@@ -15,6 +16,7 @@ function ProjectOverviewPage() {
   const navigate = useNavigate()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { clients } = useWorkspaceClients(currentWorkspace.id)
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
   const [tagsByTaskId, setTagsByTaskId] = useState({})
@@ -27,7 +29,7 @@ function ProjectOverviewPage() {
     async function load() {
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('id, name')
+        .select('id, name, client_id')
         .eq('id', id)
         .maybeSingle()
 
@@ -116,10 +118,12 @@ function ProjectOverviewPage() {
   }
 
   const membersById = new Map(members.map((member) => [member.id, member]))
+  const client = project.client_id ? clients.find((c) => c.id === project.client_id) : null
 
   return (
     <div className="p-8">
-      <h1 className="mb-6 text-heading font-semibold text-text">{project.name}</h1>
+      <h1 className="text-heading font-semibold text-text">{project.name}</h1>
+      <p className="mb-6 text-sm text-muted">{client ? client.name : 'No client'}</p>
 
       {tasks.length === 0 ? (
         <p className="text-muted">No tasks in this project yet.</p>

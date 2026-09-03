@@ -3,26 +3,36 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { validateProjectName } from '@/lib/validateProjectName'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
+import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+
+const INITIAL_VALUES = { name: '', clientId: '' }
 
 function ProjectsPage() {
   const { currentWorkspace } = useWorkspace()
   const { projects, createProject } = useWorkspaceProjects(currentWorkspace.id)
+  const { clients } = useWorkspaceClients(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
 
-  const [name, setName] = useState('')
+  const [values, setValues] = useState(INITIAL_VALUES)
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
 
+  function handleChange(event) {
+    const { name, value } = event.target
+    setValues((prev) => ({ ...prev, [name]: value }))
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
-    const validationErrors = validateProjectName({ name })
+    const validationErrors = validateProjectName({ name: values.name })
     setErrors(validationErrors)
     if (Object.keys(validationErrors).length > 0) {
       return
@@ -32,8 +42,8 @@ function ProjectsPage() {
     setIsCreating(true)
 
     try {
-      await createProject(name)
-      setName('')
+      await createProject(values.name, values.clientId)
+      setValues(INITIAL_VALUES)
     } catch (createError) {
       console.error('Failed to create project:', createError)
       setSubmitError('Something went wrong creating your project. Please try again.')
@@ -76,11 +86,22 @@ function ProjectsPage() {
                   id="projectName"
                   name="name"
                   type="text"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  value={values.name}
+                  onChange={handleChange}
                   aria-invalid={Boolean(errors.name)}
                 />
                 {errors.name && <p className="text-xs text-danger">{errors.name}</p>}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="projectClientId">Client</Label>
+                <Select id="projectClientId" name="clientId" value={values.clientId} onChange={handleChange}>
+                  <option value="">No client</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
               <Button type="submit" variant="outline" className="self-start" disabled={isCreating}>
                 {isCreating ? 'Creating...' : 'Add project'}

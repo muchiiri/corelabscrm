@@ -21,6 +21,7 @@ function TaskForm({
   members = [],
   tags = [],
   projects = [],
+  clients = [],
   onCreateTag,
   onChange,
   onSubmit,
@@ -108,6 +109,17 @@ function TaskForm({
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="clientId">Client</Label>
+            <Select id="clientId" name="clientId" value={values.clientId} onChange={onChange} disabled={readOnly}>
+              <option value="">No client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
                 </option>
               ))}
             </Select>

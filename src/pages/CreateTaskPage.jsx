@@ -6,6 +6,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
+import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { supabase } from '@/lib/supabase'
 
 const INITIAL_VALUES = {
@@ -17,6 +18,7 @@ const INITIAL_VALUES = {
   assigneeId: '',
   tagIds: [],
   projectId: '',
+  clientId: '',
 }
 
 function CreateTaskPage() {
@@ -25,6 +27,7 @@ function CreateTaskPage() {
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
+  const { clients } = useWorkspaceClients(currentWorkspace.id)
   const [values, setValues] = useState(INITIAL_VALUES)
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
@@ -57,6 +60,7 @@ function CreateTaskPage() {
         due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
         assignee_id: values.assigneeId || null,
         project_id: values.projectId || null,
+        client_id: values.clientId || null,
       })
       .select('id')
       .single()
@@ -95,6 +99,7 @@ function CreateTaskPage() {
         members={members}
         tags={tags}
         projects={projects}
+        clients={clients}
         onCreateTag={createTag}
         onChange={handleChange}
         onSubmit={handleSubmit}

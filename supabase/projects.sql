@@ -9,11 +9,10 @@ create table if not exists projects (
   created_at timestamptz not null default now()
 );
 
--- client_id deliberately absent - feature 13 adds it via
--- `alter table projects add column ...` when it lands, mirroring
--- tasks.sql's precedent for project_id/client_id/recurrence_rule/snoozed_until.
-
 alter table projects enable row level security;
+
+-- Run this after supabase/clients.sql (client_id references clients).
+alter table projects add column if not exists client_id uuid references clients(id) on delete set null;
 
 drop policy if exists "Members can view their workspace's projects" on projects;
 create policy "Members can view their workspace's projects"

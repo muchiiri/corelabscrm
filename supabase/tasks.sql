@@ -13,13 +13,16 @@ create table if not exists tasks (
   updated_at timestamptz not null default now()
 );
 
--- client_id, recurrence_rule, and snoozed_until are deliberately absent -
--- features 13, 19, and 20 each add their own column via
--- `alter table tasks add column ...` when they land.
+-- recurrence_rule and snoozed_until are deliberately absent - features 19
+-- and 20 each add their own column via `alter table tasks add column ...`
+-- when they land.
 alter table tasks add column if not exists assignee_id uuid references auth.users(id) on delete set null;
 
 -- Run this after supabase/projects.sql (project_id references projects).
 alter table tasks add column if not exists project_id uuid references projects(id) on delete set null;
+
+-- Run this after supabase/clients.sql (client_id references clients).
+alter table tasks add column if not exists client_id uuid references clients(id) on delete set null;
 
 alter table tasks enable row level security;
 

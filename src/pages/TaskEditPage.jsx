@@ -7,6 +7,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
+import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 
@@ -26,6 +27,7 @@ function TaskEditPage() {
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
+  const { clients } = useWorkspaceClients(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const readOnly = myRole === 'Viewer'
   const [values, setValues] = useState(null)
@@ -44,7 +46,7 @@ function TaskEditPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, description, priority, status, due_at, assignee_id, project_id')
+        .select('id, title, description, priority, status, due_at, assignee_id, project_id, client_id')
         .eq('id', id)
         .maybeSingle()
 
@@ -80,6 +82,7 @@ function TaskEditPage() {
         dueAt: toDatetimeLocalValue(data.due_at),
         assigneeId: data.assignee_id ?? '',
         projectId: data.project_id ?? '',
+        clientId: data.client_id ?? '',
         tagIds: (taskTagRows ?? []).map((row) => row.tag_id),
       })
       setLoading(false)
@@ -117,6 +120,7 @@ function TaskEditPage() {
         due_at: values.dueAt ? new Date(values.dueAt).toISOString() : null,
         assignee_id: values.assigneeId || null,
         project_id: values.projectId || null,
+        client_id: values.clientId || null,
       })
       .eq('id', id)
 
@@ -188,6 +192,7 @@ function TaskEditPage() {
         members={members}
         tags={tags}
         projects={projects}
+        clients={clients}
         onCreateTag={createTag}
         onChange={handleChange}
         onSubmit={handleSubmit}

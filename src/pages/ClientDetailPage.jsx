@@ -21,6 +21,8 @@ function ClientDetailPage() {
   const canWrite = myRole !== 'Viewer'
   const { logs, createLog } = useClientInteractionLogs(id)
   const [client, setClient] = useState(null)
+  const [relatedTasks, setRelatedTasks] = useState([])
+  const [relatedProjects, setRelatedProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -74,6 +76,39 @@ function ClientDetailPage() {
       }
 
       setClient(data)
+
+      const { data: taskRows, error: taskError } = await supabase
+        .from('tasks')
+        .select('id, title')
+        .eq('client_id', id)
+        .order('created_at', { ascending: false })
+
+      if (cancelled) {
+        return
+      }
+      if (taskError) {
+        console.error('Failed to load client tasks:', taskError)
+        setRelatedTasks([])
+      } else {
+        setRelatedTasks(taskRows)
+      }
+
+      const { data: projectRows, error: projectError } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('client_id', id)
+        .order('created_at', { ascending: false })
+
+      if (cancelled) {
+        return
+      }
+      if (projectError) {
+        console.error('Failed to load client projects:', projectError)
+        setRelatedProjects([])
+      } else {
+        setRelatedProjects(projectRows)
+      }
+
       setLoading(false)
     }
 
@@ -179,6 +214,48 @@ function ClientDetailPage() {
                   </li>
                 )
               })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-heading">Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {relatedTasks.length === 0 ? (
+            <p className="text-muted">No tasks linked to this client yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {relatedTasks.map((task) => (
+                <li key={task.id}>
+                  <Link to={`/tasks/${task.id}/edit`} className="text-secondary hover:underline">
+                    {task.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-heading">Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {relatedProjects.length === 0 ? (
+            <p className="text-muted">No projects linked to this client yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {relatedProjects.map((project) => (
+                <li key={project.id}>
+                  <Link to={`/projects/${project.id}`} className="text-secondary hover:underline">
+                    {project.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </CardContent>
