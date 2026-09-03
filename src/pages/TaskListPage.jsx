@@ -8,6 +8,7 @@ import PriorityBadge from '@/components/tasks/PriorityBadge'
 import TaskSnoozeControl from '@/components/tasks/TaskSnoozeControl'
 import { Avatar } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
+import BulkActionToolbar from '@/components/tasks/BulkActionToolbar'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
@@ -45,9 +46,16 @@ function TaskListPage() {
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [snoozeError, setSnoozeError] = useState(null)
   const [completeError, setCompleteError] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [isBulkActionPending, setIsBulkActionPending] = useState(false)
+  const [bulkActionError, setBulkActionError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
+    // A workspace switch reloads `tasks` here; without also resetting
+    // selection, ids from the previous workspace would linger, stale and
+    // unmatched by any row in the new list.
+    setSelectedIds(new Set())
 
     async function load() {
       const { data, error } = await supabase
@@ -110,8 +118,21 @@ function TaskListPage() {
     }
   }, [currentWorkspace.id])
 
+  function toggleSelected(taskId) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(taskId)) {
+        next.delete(taskId)
+      } else {
+        next.add(taskId)
+      }
+      return next
+    })
+  }
+
   function handleFilterChange(event) {
     const { name, value } = event.target
+    setSelectedIds(new Set())
     setFilters((prev) => ({
       ...prev,
       [name]: value,
@@ -123,10 +144,12 @@ function TaskListPage() {
 
   function handleDatePreset(preset) {
     const { dueFrom, dueTo } = getDatePresetRange(preset)
+    setSelectedIds(new Set())
     setFilters((prev) => ({ ...prev, dueFrom, dueTo: dueTo ?? '', overdueOnly: false }))
   }
 
   function handleOverduePreset() {
+    setSelectedIds(new Set())
     setFilters((prev) => ({ ...prev, dueFrom: '', dueTo: '', overdueOnly: true }))
   }
 
@@ -165,6 +188,87 @@ function TaskListPage() {
     }
   }
 
+  async function handleBulkMarkDone(ids) {
+    setBulkActionError(null)
+    setIsBulkActionPending(true)
+    const idSet = new Set(ids)
+    const previousTasks = tasks
+    setTasks((prev) => prev.map((t) => (idSet.has(t.id) ? { ...t, status: 'Done' } : t)))
+
+    // .select() (no .single() - this can touch any number of rows) turns a
+    // partially or fully RLS-filtered bulk write into a detectable result:
+    // compare the returned row count to the ids we asked for, the same
+    // lesson feature 20b learned for the single-row case.
+    const { data, error } = await supabase.from('tasks').update({ status: 'Done' }).in('id', ids).select()
+
+    if (error || !data || data.length !== ids.length) {
+      console.error('Failed to bulk mark tasks done:', error)
+      setTasks(previousTasks)
+      setBulkActionError('Something went wrong updating those tasks. Please try again.')
+    } else {
+      setSelectedIds(new Set())
+    }
+    setIsBulkActionPending(false)
+  }
+
+  async function handleBulkDelete(ids) {
+    setBulkActionError(null)
+    setIsBulkActionPending(true)
+    const idSet = new Set(ids)
+    const previousTasks = tasks
+    setTasks((prev) => prev.filter((t) => !idSet.has(t.id)))
+
+    const { data, error } = await supabase.from('tasks').delete().in('id', ids).select()
+
+    if (error || !data || data.length !== ids.length) {
+      console.error('Failed to bulk delete tasks:', error)
+      setTasks(previousTasks)
+      setBulkActionError('Something went wrong deleting those tasks. Please try again.')
+    } else {
+      setSelectedIds(new Set())
+    }
+    setIsBulkActionPending(false)
+  }
+
+  async function handleBulkStatusChange(ids, status) {
+    setBulkActionError(null)
+    setIsBulkActionPending(true)
+    const idSet = new Set(ids)
+    const previousTasks = tasks
+    setTasks((prev) => prev.map((t) => (idSet.has(t.id) ? { ...t, status } : t)))
+
+    const { data, error } = await supabase.from('tasks').update({ status }).in('id', ids).select()
+
+    if (error || !data || data.length !== ids.length) {
+      console.error('Failed to bulk change task status:', error)
+      setTasks(previousTasks)
+      setBulkActionError('Something went wrong updating those tasks. Please try again.')
+    } else {
+      setSelectedIds(new Set())
+    }
+    setIsBulkActionPending(false)
+  }
+
+  async function handleBulkAssign(ids, value) {
+    setBulkActionError(null)
+    setIsBulkActionPending(true)
+    const idSet = new Set(ids)
+    const assigneeId = value === 'unassign' ? null : value
+    const previousTasks = tasks
+    setTasks((prev) => prev.map((t) => (idSet.has(t.id) ? { ...t, assignee_id: assigneeId } : t)))
+
+    const { data, error } = await supabase.from('tasks').update({ assignee_id: assigneeId }).in('id', ids).select()
+
+    if (error || !data || data.length !== ids.length) {
+      console.error('Failed to bulk assign tasks:', error)
+      setTasks(previousTasks)
+      setBulkActionError('Something went wrong assigning those tasks. Please try again.')
+    } else {
+      setSelectedIds(new Set())
+    }
+    setIsBulkActionPending(false)
+  }
+
   if (loading) {
     return <p className="p-8 text-muted">Loading...</p>
   }
@@ -190,6 +294,9 @@ function TaskListPage() {
       )}
       {completeError && (
         <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{completeError}</p>
+      )}
+      {bulkActionError && (
+        <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{bulkActionError}</p>
       )}
 
       {tasks.length === 0 ? (
@@ -289,12 +396,42 @@ function TaskListPage() {
             </Button>
           </div>
 
+          {selectedIds.size > 0 && (
+            <BulkActionToolbar
+              selectedCount={selectedIds.size}
+              onClear={() => setSelectedIds(new Set())}
+              onMarkDone={() => handleBulkMarkDone(Array.from(selectedIds))}
+              onDelete={() => handleBulkDelete(Array.from(selectedIds))}
+              onStatusChange={(status) => handleBulkStatusChange(Array.from(selectedIds), status)}
+              onAssign={(value) => handleBulkAssign(Array.from(selectedIds), value)}
+              members={members}
+              isPending={isBulkActionPending}
+            />
+          )}
+
           {filteredTasks.length === 0 ? (
             <p className="text-muted">No tasks match your filters.</p>
           ) : (
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted">
+                  <th className="py-2 pr-4 font-normal">
+                    {canWrite && (
+                      <Checkbox
+                        checked={
+                          filteredTasks.length > 0 &&
+                          filteredTasks.every((task) => selectedIds.has(task.id))
+                        }
+                        onChange={(event) => {
+                          setSelectedIds(
+                            event.target.checked
+                              ? new Set(filteredTasks.map((task) => task.id))
+                              : new Set(),
+                          )
+                        }}
+                      />
+                    )}
+                  </th>
                   <th className="py-2 pr-4 font-normal">Done</th>
                   <th className="py-2 pr-4 font-normal">ID</th>
                   <th className="py-2 pr-4 font-normal">Name</th>
@@ -319,6 +456,18 @@ function TaskListPage() {
                       onClick={() => navigate(`/tasks/${task.id}/edit`)}
                       className="cursor-pointer border-b border-border hover:bg-border"
                     >
+                      <td className="py-3 pr-4">
+                        {canWrite && (
+                          <Checkbox
+                            checked={selectedIds.has(task.id)}
+                            onChange={(event) => {
+                              event.stopPropagation()
+                              toggleSelected(task.id)
+                            }}
+                            onClick={(event) => event.stopPropagation()}
+                          />
+                        )}
+                      </td>
                       <td className="py-3 pr-4">
                         {canWrite && (
                           <Checkbox
