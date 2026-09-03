@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,9 @@ import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+import { supabase } from '@/lib/supabase'
+import { groupTasksByProjectId } from '@/lib/groupTasksByProjectId'
+import { computeCompletionRate } from '@/lib/computeCompletionRate'
 
 const INITIAL_VALUES = { name: '', clientId: '' }
 
@@ -24,6 +27,35 @@ function ProjectsPage() {
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [tasks, setTasks] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadTasks() {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, project_id, status')
+        .eq('workspace_id', currentWorkspace.id)
+
+      if (cancelled) {
+        return
+      }
+      if (error) {
+        console.error('Failed to load tasks for project completion rates:', error)
+        setTasks([])
+        return
+      }
+      setTasks(data)
+    }
+
+    loadTasks()
+    return () => {
+      cancelled = true
+    }
+  }, [currentWorkspace.id])
+
+  const tasksByProjectId = groupTasksByProjectId(tasks)
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -64,14 +96,28 @@ function ProjectsPage() {
           {projects.length === 0 ? (
             <p className="text-muted">No projects yet.</p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {projects.map((project) => (
-                <li key={project.id}>
-                  <Link to={`/projects/${project.id}`} className="text-secondary hover:underline">
-                    {project.name}
-                  </Link>
-                </li>
-              ))}
+            <ul className="flex flex-col gap-4">
+              {projects.map((project) => {
+                const completionRate = computeCompletionRate(tasksByProjectId.get(project.id) || [])
+                return (
+                  <li key={project.id} className="flex flex-col gap-1.5">
+                    <Link to={`/projects/${project.id}`} className="text-secondary hover:underline">
+                      {project.name}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-hover">
+                        <div
+                          className="h-full rounded-full bg-accent"
+                          style={{ width: `${completionRate.rate}%` }}
+                        />
+                      </div>
+                      <span className="shrink-0 text-xs text-muted">
+                        {completionRate.rate}% · {completionRate.completed} of {completionRate.total} tasks done
+                      </span>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
 

@@ -1,12 +1,7 @@
+import { groupTasksByProjectId } from '@/lib/groupTasksByProjectId'
+
 export function computeProjectStats(projects, tasks) {
-  const tasksByProjectId = new Map()
-  for (const task of tasks) {
-    if (!task.project_id) continue
-    if (!tasksByProjectId.has(task.project_id)) {
-      tasksByProjectId.set(task.project_id, [])
-    }
-    tasksByProjectId.get(task.project_id).push(task)
-  }
+  const tasksByProjectId = groupTasksByProjectId(tasks)
 
   let ongoing = 0
   let completed = 0

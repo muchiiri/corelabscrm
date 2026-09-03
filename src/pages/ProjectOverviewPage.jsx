@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import StatusBadge from '@/components/tasks/StatusBadge'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
 import { Avatar } from '@/components/ui/avatar'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
@@ -11,6 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
+import { computeCompletionRate } from '@/lib/computeCompletionRate'
 
 function ProjectOverviewPage() {
   const { id } = useParams()
@@ -120,11 +122,27 @@ function ProjectOverviewPage() {
 
   const membersById = new Map(members.map((member) => [member.id, member]))
   const client = project.client_id ? clients.find((c) => c.id === project.client_id) : null
+  const completionRate = computeCompletionRate(tasks)
 
   return (
     <div className="p-8">
       <h1 className="text-heading font-semibold text-text">{project.name}</h1>
       <p className="mb-6 text-sm text-muted">{client ? client.name : 'No client'}</p>
+
+      <Card className="mb-6 max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-sm font-normal text-muted">Completion rate</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-2 text-2xl font-semibold text-text">{completionRate.rate}%</p>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover">
+            <div className="h-full rounded-full bg-accent" style={{ width: `${completionRate.rate}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            {completionRate.completed} of {completionRate.total} tasks done
+          </p>
+        </CardContent>
+      </Card>
 
       {tasks.length === 0 ? (
         <p className="text-muted">No tasks in this project yet.</p>
