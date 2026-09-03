@@ -16,3 +16,4 @@ function PriorityBadge({ priority }) {
 }
 
 export default PriorityBadge
+export { PRIORITY_DOT_CLASS }

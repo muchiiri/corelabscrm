@@ -13,6 +13,7 @@ import ProjectOverviewPage from '@/pages/ProjectOverviewPage'
 import ClientsPage from '@/pages/ClientsPage'
 import ClientDetailPage from '@/pages/ClientDetailPage'
 import KanbanPage from '@/pages/KanbanPage'
+import CalendarPage from '@/pages/CalendarPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicOnlyRoute from '@/components/auth/PublicOnlyRoute'
 import RequireWorkspace from '@/components/workspace/RequireWorkspace'
@@ -59,6 +60,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/tasks" element={<TaskListPage />} />
         <Route path="/tasks/kanban" element={<KanbanPage />} />
+        <Route path="/tasks/calendar" element={<CalendarPage />} />
         <Route
           path="/tasks/new"
           element={
