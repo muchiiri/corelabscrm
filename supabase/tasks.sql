@@ -13,10 +13,14 @@ create table if not exists tasks (
   updated_at timestamptz not null default now()
 );
 
--- recurrence_rule and snoozed_until are deliberately absent - features 19
--- and 20 each add their own column via `alter table tasks add column ...`
--- when they land.
+-- snoozed_until is deliberately absent - feature 20 adds its own column
+-- via `alter table tasks add column ...` when it lands.
 alter table tasks add column if not exists assignee_id uuid references auth.users(id) on delete set null;
+
+-- Feature 19: { frequency: 'Daily' | 'Weekly' | 'Monthly', interval: number,
+-- endDate: string | null }, or null for a non-recurring task. Shape is
+-- validated client-side (validateRecurrenceRule.js), not by a DB constraint.
+alter table tasks add column if not exists recurrence_rule jsonb;
 
 -- Run this after supabase/projects.sql (project_id references projects).
 alter table tasks add column if not exists project_id uuid references projects(id) on delete set null;

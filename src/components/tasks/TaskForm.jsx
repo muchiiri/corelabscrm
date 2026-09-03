@@ -92,6 +92,56 @@ function TaskForm({
             />
           </div>
           <div className="flex flex-col gap-1.5">
+            <Label htmlFor="recurrenceFrequency">Repeat</Label>
+            <Select
+              id="recurrenceFrequency"
+              name="recurrenceFrequency"
+              value={values.recurrenceFrequency}
+              onChange={onChange}
+              disabled={readOnly || !values.dueAt}
+            >
+              <option value="">Does not repeat</option>
+              <option value="Daily">Daily</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+            </Select>
+            {!values.dueAt && (
+              <p className="text-xs text-muted">Set a due date to repeat this task.</p>
+            )}
+            {values.recurrenceFrequency && (
+              <div className="mt-1 flex gap-4">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="recurrenceInterval">Every</Label>
+                  <Input
+                    id="recurrenceInterval"
+                    name="recurrenceInterval"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={values.recurrenceInterval}
+                    onChange={onChange}
+                    aria-invalid={Boolean(errors.recurrenceInterval)}
+                    disabled={readOnly}
+                  />
+                  {errors.recurrenceInterval && (
+                    <p className="text-xs text-danger">{errors.recurrenceInterval}</p>
+                  )}
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="recurrenceEndDate">Ends on</Label>
+                  <Input
+                    id="recurrenceEndDate"
+                    name="recurrenceEndDate"
+                    type="date"
+                    value={values.recurrenceEndDate}
+                    onChange={onChange}
+                    disabled={readOnly}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="assigneeId">Assignee</Label>
             <Select id="assigneeId" name="assigneeId" value={values.assigneeId} onChange={onChange} disabled={readOnly}>
               <option value="">Unassigned</option>

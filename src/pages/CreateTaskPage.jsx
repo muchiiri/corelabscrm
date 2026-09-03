@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TaskForm from '@/components/tasks/TaskForm'
 import { validateTaskForm } from '@/lib/validateTaskForm'
+import { validateRecurrenceRule } from '@/lib/validateRecurrenceRule'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
@@ -19,6 +20,9 @@ const INITIAL_VALUES = {
   tagIds: [],
   projectId: '',
   clientId: '',
+  recurrenceFrequency: '',
+  recurrenceInterval: '1',
+  recurrenceEndDate: '',
 }
 
 function CreateTaskPage() {
@@ -35,12 +39,23 @@ function CreateTaskPage() {
 
   function handleChange(event) {
     const { name, value } = event.target
-    setValues((prev) => ({ ...prev, [name]: value }))
+    setValues((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'dueAt' && !value ? { recurrenceFrequency: '' } : {}),
+    }))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const validationErrors = validateTaskForm(values)
+    const validationErrors = {
+      ...validateTaskForm(values),
+      ...validateRecurrenceRule({
+        frequency: values.recurrenceFrequency,
+        interval: values.recurrenceInterval,
+        dueAt: values.dueAt,
+      }),
+    }
     setErrors(validationErrors)
     if (Object.keys(validationErrors).length > 0) {
       return
@@ -48,6 +63,14 @@ function CreateTaskPage() {
 
     setSubmitError(null)
     setIsSubmitting(true)
+
+    const recurrenceRule = values.recurrenceFrequency
+      ? {
+          frequency: values.recurrenceFrequency,
+          interval: Number(values.recurrenceInterval),
+          endDate: values.recurrenceEndDate || null,
+        }
+      : null
 
     const { data: newTask, error: insertError } = await supabase
       .from('tasks')
@@ -61,6 +84,7 @@ function CreateTaskPage() {
         assignee_id: values.assigneeId || null,
         project_id: values.projectId || null,
         client_id: values.clientId || null,
+        recurrence_rule: recurrenceRule,
       })
       .select('id')
       .single()

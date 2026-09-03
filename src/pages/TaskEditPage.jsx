@@ -3,6 +3,8 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import TaskForm from '@/components/tasks/TaskForm'
 import { Button } from '@/components/ui/button'
 import { validateTaskForm } from '@/lib/validateTaskForm'
+import { validateRecurrenceRule } from '@/lib/validateRecurrenceRule'
+import { computeNextOccurrenceDueAt } from '@/lib/computeNextOccurrenceDueAt'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
@@ -31,6 +33,7 @@ function TaskEditPage() {
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const readOnly = myRole === 'Viewer'
   const [values, setValues] = useState(null)
+  const [initialStatus, setInitialStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [errors, setErrors] = useState({})
@@ -46,7 +49,9 @@ function TaskEditPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, description, priority, status, due_at, assignee_id, project_id, client_id')
+        .select(
+          'id, title, description, priority, status, due_at, assignee_id, project_id, client_id, recurrence_rule',
+        )
         .eq('id', id)
         .maybeSingle()
 
@@ -84,7 +89,11 @@ function TaskEditPage() {
         projectId: data.project_id ?? '',
         clientId: data.client_id ?? '',
         tagIds: (taskTagRows ?? []).map((row) => row.tag_id),
+        recurrenceFrequency: data.recurrence_rule?.frequency ?? '',
+        recurrenceInterval: String(data.recurrence_rule?.interval ?? 1),
+        recurrenceEndDate: data.recurrence_rule?.endDate ?? '',
       })
+      setInitialStatus(data.status)
       setLoading(false)
     }
 
@@ -96,12 +105,23 @@ function TaskEditPage() {
 
   function handleChange(event) {
     const { name, value } = event.target
-    setValues((prev) => ({ ...prev, [name]: value }))
+    setValues((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'dueAt' && !value ? { recurrenceFrequency: '' } : {}),
+    }))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const validationErrors = validateTaskForm(values)
+    const validationErrors = {
+      ...validateTaskForm(values),
+      ...validateRecurrenceRule({
+        frequency: values.recurrenceFrequency,
+        interval: values.recurrenceInterval,
+        dueAt: values.dueAt,
+      }),
+    }
     setErrors(validationErrors)
     if (Object.keys(validationErrors).length > 0) {
       return
@@ -109,6 +129,14 @@ function TaskEditPage() {
 
     setSubmitError(null)
     setIsSubmitting(true)
+
+    const recurrenceRule = values.recurrenceFrequency
+      ? {
+          frequency: values.recurrenceFrequency,
+          interval: Number(values.recurrenceInterval),
+          endDate: values.recurrenceEndDate || null,
+        }
+      : null
 
     const { error: updateError } = await supabase
       .from('tasks')
@@ -121,6 +149,7 @@ function TaskEditPage() {
         assignee_id: values.assigneeId || null,
         project_id: values.projectId || null,
         client_id: values.clientId || null,
+        recurrence_rule: recurrenceRule,
       })
       .eq('id', id)
 
@@ -142,6 +171,33 @@ function TaskEditPage() {
         .insert(values.tagIds.map((tagId) => ({ task_id: id, tag_id: tagId })))
       if (tagInsertError) {
         console.error('Failed to update tags:', tagInsertError)
+      }
+    }
+
+    // Best-effort: the task's own save above already succeeded, so a failure
+    // creating its next occurrence shouldn't block navigation or surface as
+    // the task-save error.
+    if (initialStatus !== 'Done' && values.status === 'Done' && recurrenceRule) {
+      const nextDueAt = computeNextOccurrenceDueAt(
+        values.dueAt ? new Date(values.dueAt).toISOString() : null,
+        recurrenceRule,
+      )
+      if (nextDueAt) {
+        const { error: nextOccurrenceError } = await supabase.from('tasks').insert({
+          workspace_id: currentWorkspace.id,
+          title: values.title,
+          description: values.description || null,
+          priority: values.priority,
+          status: 'Todo',
+          due_at: nextDueAt,
+          assignee_id: values.assigneeId || null,
+          project_id: values.projectId || null,
+          client_id: values.clientId || null,
+          recurrence_rule: recurrenceRule,
+        })
+        if (nextOccurrenceError) {
+          console.error('Failed to create next occurrence:', nextOccurrenceError)
+        }
       }
     }
 
