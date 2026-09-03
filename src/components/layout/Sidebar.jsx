@@ -17,6 +17,9 @@ function Sidebar() {
         <Link to="/tasks" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
           Tasks
         </Link>
+        <Link to="/tasks/kanban" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
+          Kanban
+        </Link>
         <Link to="/projects" className="rounded-sm px-2 py-1.5 text-sm text-text hover:bg-border">
           Projects
         </Link>

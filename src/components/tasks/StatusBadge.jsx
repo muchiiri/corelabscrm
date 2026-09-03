@@ -18,3 +18,4 @@ function StatusBadge({ status }) {
 }
 
 export default StatusBadge
+export { STATUS_DOT_CLASS }
