@@ -45,7 +45,7 @@ function DashboardPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at, updated_at, assignee_id, project_id')
+        .select('id, title, priority, status, due_at, updated_at, assignee_id, project_id, snoozed_until')
         .eq('workspace_id', currentWorkspace.id)
 
       if (cancelled) {

@@ -1,3 +1,6 @@
+import { isTaskOverdue } from './isTaskOverdue.js'
+import { isTaskSnoozed } from './isTaskSnoozed.js'
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 function startOfDay(date) {
@@ -25,11 +28,11 @@ export function computeDashboardMetrics(tasks, now = new Date()) {
   for (const task of tasks) {
     const dueAt = task.due_at ? new Date(task.due_at) : null
 
-    if (dueAt && dueAt >= todayStart && dueAt <= todayEnd) {
+    if (dueAt && dueAt >= todayStart && dueAt <= todayEnd && !isTaskSnoozed(task, now)) {
       tasksToday += 1
     }
 
-    if (dueAt && dueAt < now && task.status !== 'Done') {
+    if (isTaskOverdue(task, now)) {
       overdue += 1
     }
 

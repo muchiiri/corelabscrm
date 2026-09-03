@@ -141,6 +141,19 @@ function TaskForm({
               </div>
             )}
           </div>
+          {values.snoozedUntil !== undefined && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="snoozedUntil">Snoozed until</Label>
+              <Input
+                id="snoozedUntil"
+                name="snoozedUntil"
+                type="date"
+                value={values.snoozedUntil}
+                onChange={onChange}
+                disabled={readOnly}
+              />
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="assigneeId">Assignee</Label>
             <Select id="assigneeId" name="assigneeId" value={values.assigneeId} onChange={onChange} disabled={readOnly}>

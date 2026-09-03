@@ -10,6 +10,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
+import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 
 function ProjectOverviewPage() {
   const { id } = useParams()
@@ -48,7 +49,7 @@ function ProjectOverviewPage() {
 
       const { data: taskRows, error: tasksError } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at, assignee_id')
+        .select('id, title, priority, status, due_at, assignee_id, snoozed_until')
         .eq('project_id', id)
         .order('created_at', { ascending: false })
 
@@ -157,6 +158,11 @@ function ProjectOverviewPage() {
                   </td>
                   <td className={cn('py-3 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
                     {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
+                    {isTaskSnoozed(task) && (
+                      <span className="ml-2 text-xs text-faint">
+                        Snoozed until {new Date(task.snoozed_until).toLocaleDateString()}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 pr-4">
                     {assignee ? (

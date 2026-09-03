@@ -1,3 +1,5 @@
+import { isTaskSnoozed } from './isTaskSnoozed.js'
+
 const DAY_MS = 24 * 60 * 60 * 1000
 const UPCOMING_WINDOW_DAYS = 7
 const MAX_RESULTS = 5
@@ -8,6 +10,7 @@ export function getUpcomingDeadlines(tasks, now = new Date()) {
   return tasks
     .filter((task) => {
       if (!task.due_at || task.status === 'Done') return false
+      if (isTaskSnoozed(task, now)) return false
       const dueAt = new Date(task.due_at)
       return dueAt >= now && dueAt <= windowEnd
     })

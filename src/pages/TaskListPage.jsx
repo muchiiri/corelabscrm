@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import StatusBadge from '@/components/tasks/StatusBadge'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
+import TaskSnoozeControl from '@/components/tasks/TaskSnoozeControl'
 import { Avatar } from '@/components/ui/avatar'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
@@ -41,6 +42,7 @@ function TaskListPage() {
   const [tagsByTaskId, setTagsByTaskId] = useState({})
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState(INITIAL_FILTERS)
+  const [snoozeError, setSnoozeError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -48,7 +50,7 @@ function TaskListPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at, assignee_id, project_id, client_id')
+        .select('id, title, priority, status, due_at, assignee_id, project_id, client_id, snoozed_until')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
@@ -126,6 +128,19 @@ function TaskListPage() {
     setFilters((prev) => ({ ...prev, dueFrom: '', dueTo: '', overdueOnly: true }))
   }
 
+  async function handleSnooze(taskId, snoozedUntilIso) {
+    setSnoozeError(null)
+    const previousTasks = tasks
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, snoozed_until: snoozedUntilIso } : t)))
+
+    const { error } = await supabase.from('tasks').update({ snoozed_until: snoozedUntilIso }).eq('id', taskId)
+    if (error) {
+      console.error('Failed to update snooze:', error)
+      setTasks(previousTasks)
+      setSnoozeError('Something went wrong updating that task. Please try again.')
+    }
+  }
+
   if (loading) {
     return <p className="p-8 text-muted">Loading...</p>
   }
@@ -145,6 +160,10 @@ function TaskListPage() {
           </Button>
         )}
       </div>
+
+      {snoozeError && (
+        <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{snoozeError}</p>
+      )}
 
       {tasks.length === 0 ? (
         <p className="text-muted">
@@ -254,6 +273,7 @@ function TaskListPage() {
                   <th className="py-2 pr-4 font-normal">Priority</th>
                   <th className="py-2 pr-4 font-normal">List</th>
                   <th className="py-2 pr-4 font-normal">Due Date</th>
+                  <th className="py-2 pr-4 font-normal">Snooze</th>
                   <th className="py-2 pr-4 font-normal">Assignee</th>
                   <th className="py-2 pr-4 font-normal">Project</th>
                   <th className="py-2 pr-4 font-normal">Client</th>
@@ -281,6 +301,13 @@ function TaskListPage() {
                       </td>
                       <td className={cn('py-3 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
                         {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <TaskSnoozeControl
+                          task={task}
+                          onSnooze={(iso) => handleSnooze(task.id, iso)}
+                          disabled={!canWrite}
+                        />
                       </td>
                       <td className="py-3 pr-4">
                         {assignee ? (

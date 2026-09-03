@@ -9,6 +9,7 @@ import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
+import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 import { cn } from '@/lib/utils'
 
 const STATUS_COLUMNS = ['Todo', 'In Progress', 'Blocked', 'Waiting', 'Done']
@@ -29,7 +30,7 @@ function KanbanPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at, assignee_id')
+        .select('id, title, priority, status, due_at, assignee_id, snoozed_until')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
@@ -135,6 +136,11 @@ function KanbanPage() {
                         {task.due_at && (
                           <span className={isTaskOverdue(task) ? 'text-danger' : 'text-muted'}>
                             {new Date(task.due_at).toLocaleDateString()}
+                            {isTaskSnoozed(task) && (
+                              <span className="ml-1.5 text-faint">
+                                (Snoozed until {new Date(task.snoozed_until).toLocaleDateString()})
+                              </span>
+                            )}
                           </span>
                         )}
                       </div>

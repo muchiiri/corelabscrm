@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { validateTaskForm } from '@/lib/validateTaskForm'
 import { validateRecurrenceRule } from '@/lib/validateRecurrenceRule'
 import { computeNextOccurrenceDueAt } from '@/lib/computeNextOccurrenceDueAt'
+import { toEndOfDayISOString } from '@/lib/toEndOfDayISOString'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
@@ -20,6 +21,17 @@ function toDatetimeLocalValue(isoString) {
   const date = new Date(isoString)
   const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
   return localTime.toISOString().slice(0, 16)
+}
+
+function toDateValue(isoString) {
+  if (!isoString) {
+    return ''
+  }
+  const date = new Date(isoString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function TaskEditPage() {
@@ -50,7 +62,7 @@ function TaskEditPage() {
       const { data, error } = await supabase
         .from('tasks')
         .select(
-          'id, title, description, priority, status, due_at, assignee_id, project_id, client_id, recurrence_rule',
+          'id, title, description, priority, status, due_at, assignee_id, project_id, client_id, recurrence_rule, snoozed_until',
         )
         .eq('id', id)
         .maybeSingle()
@@ -92,6 +104,7 @@ function TaskEditPage() {
         recurrenceFrequency: data.recurrence_rule?.frequency ?? '',
         recurrenceInterval: String(data.recurrence_rule?.interval ?? 1),
         recurrenceEndDate: data.recurrence_rule?.endDate ?? '',
+        snoozedUntil: toDateValue(data.snoozed_until),
       })
       setInitialStatus(data.status)
       setLoading(false)
@@ -150,6 +163,7 @@ function TaskEditPage() {
         project_id: values.projectId || null,
         client_id: values.clientId || null,
         recurrence_rule: recurrenceRule,
+        snoozed_until: toEndOfDayISOString(values.snoozedUntil),
       })
       .eq('id', id)
 
