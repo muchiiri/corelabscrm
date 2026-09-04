@@ -45,7 +45,16 @@ export function useWorkspaceProjects(workspaceId) {
     }
   }, [workspaceId])
 
-  async function createProject({ name, clientId, description, ownerId, startDate, targetDate, labelColor }) {
+  async function createProject({
+    name,
+    clientId,
+    description,
+    ownerId,
+    startDate,
+    targetDate,
+    labelColor,
+    memberIds = [],
+  }) {
     const { data, error } = await supabase
       .from('projects')
       .insert({
@@ -63,6 +72,18 @@ export function useWorkspaceProjects(workspaceId) {
 
     if (error) {
       throw error
+    }
+
+    // Best-effort, not atomic with the project insert above - a partial
+    // failure here just means reopening the project and re-adding team
+    // members later, not worth an RPC's complexity for this feature.
+    if (memberIds.length > 0) {
+      const { error: memberInsertError } = await supabase
+        .from('project_members')
+        .insert(memberIds.map((memberId) => ({ project_id: data.id, user_id: memberId })))
+      if (memberInsertError) {
+        console.error('Failed to save team members:', memberInsertError)
+      }
     }
 
     setProjects((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))

@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Avatar } from '@/components/ui/avatar'
 import { TAG_COLORS, SWATCH_CLASS } from '@/components/tags/TagPicker'
 import { validateProjectName } from '@/lib/validateProjectName'
 import { cn } from '@/lib/utils'
@@ -24,6 +26,7 @@ const INITIAL_VALUES = {
   targetDate: '',
   description: '',
   labelColor: 'gray',
+  memberIds: [],
 }
 
 const CAPTION_CLASS = 'text-xs font-semibold uppercase tracking-wide text-muted'
@@ -37,6 +40,13 @@ function ProjectCreateModal({ open, onOpenChange, createProject, clients, member
   function handleChange(event) {
     const { name, value } = event.target
     setValues((prev) => ({ ...prev, [name]: value }))
+  }
+
+  function toggleMember(memberId) {
+    const nextMemberIds = values.memberIds.includes(memberId)
+      ? values.memberIds.filter((id) => id !== memberId)
+      : [...values.memberIds, memberId]
+    handleChange({ target: { name: 'memberIds', value: nextMemberIds } })
   }
 
   async function handleSubmit(event) {
@@ -181,6 +191,22 @@ function ProjectCreateModal({ open, onOpenChange, createProject, clients, member
                     values.labelColor === color ? 'border-text' : 'border-transparent',
                   )}
                 />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className={CAPTION_CLASS}>Team</Label>
+            <div className="flex max-h-32 flex-col gap-1.5 overflow-y-auto">
+              {members.map((member) => (
+                <label key={member.id} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={values.memberIds.includes(member.id)}
+                    onChange={() => toggleMember(member.id)}
+                  />
+                  <Avatar name={member.name} email={member.email} />
+                  <span className="text-sm text-text">{member.name || member.email}</span>
+                </label>
               ))}
             </div>
           </div>
