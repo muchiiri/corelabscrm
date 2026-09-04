@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Bell, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,6 +8,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
+import PageHeader from '@/components/layout/PageHeader'
 import { validateProjectName } from '@/lib/validateProjectName'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
@@ -39,6 +41,8 @@ const PROJECT_STATUS_TEXT_CLASS = {
   Archived: 'text-faint',
 }
 
+const STATUS_TABS = ['All', 'Active', 'Completed', 'Archived']
+
 function ProjectsPage() {
   const { currentWorkspace } = useWorkspace()
   const { projects, createProject } = useWorkspaceProjects(currentWorkspace.id)
@@ -52,6 +56,7 @@ function ProjectsPage() {
   const [submitError, setSubmitError] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
   const [viewMode, setViewMode] = useState('grid')
+  const [statusFilter, setStatusFilter] = useState('All')
   const [tasks, setTasks] = useState([])
 
   useEffect(() => {
@@ -98,6 +103,15 @@ function ProjectsPage() {
       .sort((a, b) => new Date(a.due_at) - new Date(b.due_at))[0]
     return { ...project, completionRate, client, contributors, nextDue }
   })
+
+  function countByStatus(status) {
+    return status === 'All' ? projects.length : projects.filter((project) => project.status === status).length
+  }
+
+  const filteredProjects =
+    statusFilter === 'All'
+      ? projectsWithDerived
+      : projectsWithDerived.filter((project) => project.status === statusFilter)
 
   function buildReportRows() {
     return projectsWithDerived.map((project) => [
@@ -166,39 +180,93 @@ function ProjectsPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-heading font-semibold text-text">Projects</h1>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Projects"
+        subtitle={`${projects.length} project${projects.length === 1 ? '' : 's'}, ${countByStatus('Active')} active`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Search"
+              className="bg-surface-hover"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Notifications"
+              className="bg-surface-hover"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            {canWrite && (
+              <Button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById('new-project-form')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              >
+                New project
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant={viewMode === 'grid' ? 'secondary' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('grid')}
+        >
+          Grid
+        </Button>
+        <Button
+          type="button"
+          variant={viewMode === 'list' ? 'secondary' : 'outline'}
+          size="sm"
+          onClick={() => setViewMode('list')}
+        >
+          List
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+          Export CSV
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={handleExportPdf}>
+          Export PDF
+        </Button>
+      </div>
+
+      <div className="mb-4 flex gap-2">
+        {STATUS_TABS.map((tab) => (
           <Button
+            key={tab}
             type="button"
-            variant={viewMode === 'grid' ? 'secondary' : 'outline'}
+            variant={statusFilter === tab ? 'secondary' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('grid')}
+            onClick={() => setStatusFilter(tab)}
           >
-            Grid
+            {tab} ({countByStatus(tab)})
           </Button>
-          <Button
-            type="button"
-            variant={viewMode === 'list' ? 'secondary' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            List
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
-            Export CSV
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={handleExportPdf}>
-            Export PDF
-          </Button>
-        </div>
+        ))}
       </div>
 
       {projects.length === 0 ? (
         <p className="text-muted">No projects yet.</p>
+      ) : filteredProjects.length === 0 ? (
+        <p className="text-muted">No {statusFilter} projects.</p>
       ) : viewMode === 'grid' ? (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-          {projectsWithDerived.map((project) => {
+          {filteredProjects.map((project) => {
             const { completionRate, client, contributors, nextDue } = project
 
             return (
@@ -275,7 +343,7 @@ function ProjectsPage() {
                 </tr>
               </thead>
               <tbody>
-                {projectsWithDerived.map((project) => {
+                {filteredProjects.map((project) => {
                   const { completionRate, client, contributors, nextDue } = project
 
                   return (
@@ -340,7 +408,7 @@ function ProjectsPage() {
       )}
 
       {canWrite && (
-        <Card className="mt-6 max-w-sm">
+        <Card id="new-project-form" className="mt-6 max-w-sm">
           <CardHeader>
             <CardTitle className="text-heading">New project</CardTitle>
           </CardHeader>
