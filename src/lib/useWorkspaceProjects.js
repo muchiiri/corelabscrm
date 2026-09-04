@@ -22,7 +22,7 @@ export function useWorkspaceProjects(workspaceId) {
 
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, client_id, status, description, owner_id, start_date, target_date, label_color')
+        .select('id, name, client_id, status, description, owner_id, start_date, target_date, label_color, deal_value, deal_currency')
         .eq('workspace_id', workspaceId)
         .order('name', { ascending: true })
 
@@ -53,6 +53,8 @@ export function useWorkspaceProjects(workspaceId) {
     startDate,
     targetDate,
     labelColor,
+    dealValue,
+    dealCurrency,
     memberIds = [],
   }) {
     const { data, error } = await supabase
@@ -66,8 +68,10 @@ export function useWorkspaceProjects(workspaceId) {
         start_date: startDate || null,
         target_date: targetDate || null,
         label_color: labelColor || 'gray',
+        deal_value: dealValue ? Number(dealValue) : null,
+        deal_currency: dealCurrency || 'USD',
       })
-      .select('id, name, client_id, status, description, owner_id, start_date, target_date, label_color')
+      .select('id, name, client_id, status, description, owner_id, start_date, target_date, label_color, deal_value, deal_currency')
       .single()
 
     if (error) {

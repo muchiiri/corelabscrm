@@ -67,3 +67,8 @@ alter table projects add column if not exists owner_id uuid references auth.user
 alter table projects add column if not exists start_date date;
 alter table projects add column if not exists target_date date;
 alter table projects add column if not exists label_color text not null default 'gray' check (label_color in ('gray', 'red', 'orange', 'green', 'blue', 'purple'));
+
+-- Feature 39: deal value. deal_currency always has a value (even when
+-- deal_value is null) so a set deal_value is never missing its unit.
+alter table projects add column if not exists deal_value numeric;
+alter table projects add column if not exists deal_currency text not null default 'USD' check (deal_currency in ('USD', 'KES', 'AED'));

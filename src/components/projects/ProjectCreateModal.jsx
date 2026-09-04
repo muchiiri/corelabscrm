@@ -26,8 +26,12 @@ const INITIAL_VALUES = {
   targetDate: '',
   description: '',
   labelColor: 'gray',
+  dealValue: '',
+  dealCurrency: 'USD',
   memberIds: [],
 }
+
+const DEAL_CURRENCIES = ['USD', 'KES', 'AED']
 
 const CAPTION_CLASS = 'text-xs font-semibold uppercase tracking-wide text-muted'
 
@@ -192,6 +196,40 @@ function ProjectCreateModal({ open, onOpenChange, createProject, clients, member
                   )}
                 />
               ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="modalProjectDealValue" className={CAPTION_CLASS}>
+                Deal value
+              </Label>
+              <Input
+                id="modalProjectDealValue"
+                name="dealValue"
+                type="number"
+                min="0"
+                step="0.01"
+                value={values.dealValue}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="modalProjectDealCurrency" className={CAPTION_CLASS}>
+                Currency
+              </Label>
+              <Select
+                id="modalProjectDealCurrency"
+                name="dealCurrency"
+                value={values.dealCurrency}
+                onChange={handleChange}
+              >
+                {DEAL_CURRENCIES.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
 

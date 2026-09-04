@@ -13,6 +13,7 @@ import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
+import { formatCurrency } from '@/lib/formatCurrency'
 import { supabase } from '@/lib/supabase'
 
 const STATUS_TABS = ['All', 'Active', 'Prospect', 'Churned']
@@ -30,6 +31,7 @@ function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [projectCountByClientId, setProjectCountByClientId] = useState({})
+  const [openValueByClientId, setOpenValueByClientId] = useState({})
 
   useEffect(() => {
     setCurrentPage(1)
@@ -41,7 +43,7 @@ function ClientsPage() {
     async function load() {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, client_id')
+        .select('id, client_id, status, deal_value, deal_currency')
         .eq('workspace_id', currentWorkspace.id)
 
       if (cancelled) {
@@ -50,17 +52,28 @@ function ClientsPage() {
       if (error) {
         console.error('Failed to load projects for client counts:', error)
         setProjectCountByClientId({})
+        setOpenValueByClientId({})
         return
       }
 
       const counts = {}
+      const openValues = {}
       for (const project of data) {
         if (!project.client_id) {
           continue
         }
         counts[project.client_id] = (counts[project.client_id] || 0) + 1
+
+        if (project.status === 'Active' && project.deal_value != null) {
+          if (!openValues[project.client_id]) {
+            openValues[project.client_id] = {}
+          }
+          const byCurrency = openValues[project.client_id]
+          byCurrency[project.deal_currency] = (byCurrency[project.deal_currency] || 0) + project.deal_value
+        }
       }
       setProjectCountByClientId(counts)
+      setOpenValueByClientId(openValues)
     }
 
     load()
@@ -270,6 +283,7 @@ function ClientsPage() {
                   <th className="py-2 pr-4 font-normal">Owner</th>
                   <th className="py-2 pr-4 text-right font-normal">Projects</th>
                   <th className="py-2 pr-4 font-normal">Open tasks</th>
+                  <th className="py-2 pr-4 text-right font-normal">Value</th>
                   <th className="py-2 pr-4 text-right font-normal">Last contact</th>
                 </tr>
               </thead>
@@ -279,6 +293,7 @@ function ClientsPage() {
                   const openCount = completionRate.total - completionRate.completed
                   const lastContact = lastContactByClientId[client.id]
                   const owner = client.owner_id ? membersById.get(client.owner_id) : null
+                  const openValueByCurrency = openValueByClientId[client.id]
                   return (
                     <tr key={client.id} className="border-b border-border hover:bg-surface-hover">
                       <td className="py-2.5 pr-4">
@@ -315,6 +330,17 @@ function ClientsPage() {
                             />
                           </div>
                         </div>
+                      </td>
+                      <td className="py-2.5 pr-4 text-right text-text">
+                        {openValueByCurrency ? (
+                          Object.entries(openValueByCurrency).map(([currency, amount]) => (
+                            <span key={currency} className="block">
+                              {formatCurrency(amount, currency)}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
                       </td>
                       <td className="py-2.5 pr-4 text-right text-xs text-muted">
                         {lastContact ? formatRelativeTime(lastContact) : 'No contact yet'}
