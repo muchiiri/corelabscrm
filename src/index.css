@@ -1,18 +1,19 @@
 @import 'tailwindcss';
 
-/* Locked design tokens, ported from prototypes/theme.css.
+/* Design tokens for canvas/surface/border/text, corrected in feature 33a to
+   match the TaskFlow wireframe's own palette exactly (light and dark).
    Dark values override the same custom properties under [data-theme="dark"],
    so every Tailwind utility that reads them (bg-bg, text-muted, ...) updates
    automatically - no dark: variant needed. */
 @theme {
-  --color-bg: #ffffff;
-  --color-surface: #f7f7f5;
-  --color-surface-hover: #efefec;
-  --color-border: #e5e4e7;
+  --color-bg: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f3f4f6;
+  --color-border: #e5e7eb;
 
-  --color-text: #191919;
-  --color-muted: #6b6b6b;
-  --color-faint: #9b9a97;
+  --color-text: #1f2937;
+  --color-muted: #6b7280;
+  --color-faint: #9ca3af;
 
   --color-accent: #f15b22;
   --color-accent-ink: #ffffff;
@@ -53,7 +54,7 @@
   --color-tag-purple-bg: rgba(156, 54, 181, 0.12);
   --color-tag-purple-text: #9c36b5;
 
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, 'Segoe UI', sans-serif;
 
   --text-body: 14px;
   --text-heading: 28px;
@@ -74,14 +75,14 @@
 }
 
 :root[data-theme='dark'] {
-  --color-bg: #191919;
-  --color-surface: #202020;
-  --color-surface-hover: #2a2a2a;
-  --color-border: #2f2f2f;
+  --color-bg: #111827;
+  --color-surface: #1f2937;
+  --color-surface-hover: #374151;
+  --color-border: #374151;
 
-  --color-text: #e6e6e4;
-  --color-muted: #999795;
-  --color-faint: #6b6a68;
+  --color-text: #f9fafb;
+  --color-muted: #9ca3af;
+  --color-faint: #6b7280;
 
   --color-accent: #ff7a45;
   --color-accent-ink: #191919;
