@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import PageHeader from '@/components/layout/PageHeader'
+import CompletionTrendChart from '@/components/dashboard/CompletionTrendChart'
 import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
 import { useAuth } from '@/lib/AuthContext'
 import { useWorkspace } from '@/lib/WorkspaceContext'
@@ -9,10 +11,13 @@ import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { supabase } from '@/lib/supabase'
 import { computeDashboardMetrics } from '@/lib/computeDashboardMetrics'
+import { isTaskDueToday } from '@/lib/isTaskDueToday'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
 import { computeTeamProductivity } from '@/lib/computeTeamProductivity'
 import { getUpcomingDeadlines } from '@/lib/getUpcomingDeadlines'
 import { computeProjectStats } from '@/lib/computeProjectStats'
+import { computeStatusBreakdown } from '@/lib/computeStatusBreakdown'
+import { STATUS_DOT_CLASS } from '@/components/tasks/StatusBadge'
 import { cn } from '@/lib/utils'
 
 function getGreeting() {
@@ -21,13 +26,6 @@ function getGreeting() {
   if (hour < 18) return 'Good afternoon'
   return 'Good evening'
 }
-
-const CARD_DEFS = [
-  { key: 'tasksToday', label: 'Tasks today' },
-  { key: 'completedThisWeek', label: 'Completed this week' },
-  { key: 'overdue', label: 'Overdue' },
-  { key: 'inProgress', label: 'In progress' },
-]
 
 function DashboardPage() {
   const navigate = useNavigate()
@@ -77,6 +75,9 @@ function DashboardPage() {
   const highestCompletedCount = Math.max(0, ...productivity.map((p) => p.completedCount))
   const upcomingDeadlines = getUpcomingDeadlines(tasks)
   const projectStats = computeProjectStats(projects, tasks)
+  const statusBreakdown = computeStatusBreakdown(tasks)
+  const tasksDueToday = tasks.filter((task) => isTaskDueToday(task))
+  const todayStatusBreakdown = computeStatusBreakdown(tasksDueToday)
 
   const OVERVIEW_CARD_DEFS = [
     { key: 'total', label: 'Total projects', value: projectStats.total },
@@ -86,20 +87,70 @@ function DashboardPage() {
     { key: 'team', label: 'Team', value: members.length },
   ]
 
+  const SECONDARY_CARD_DEFS = [
+    { key: 'completedThisWeek', label: 'Completed this week' },
+    { key: 'overdue', label: 'Overdue' },
+    {
+      key: 'inProgress',
+      label: 'In progress',
+      caption: `across ${projectStats.ongoing} ongoing project${projectStats.ongoing === 1 ? '' : 's'}`,
+    },
+  ]
+
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
+  const taskWord = metrics.tasksToday === 1 ? 'task' : 'tasks'
+
   return (
     <div className="p-8">
-      <h1 className="mb-6 text-heading font-semibold text-text">
-        {getGreeting()}, {name}
-      </h1>
+      <PageHeader
+        title={`${getGreeting()}, ${name}`}
+        subtitle={`${todayLabel} · ${metrics.tasksToday} ${taskWord} on your plate`}
+      />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {CARD_DEFS.map(({ key, label }) => (
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-sm font-normal text-muted">Tasks today</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold text-text">{metrics.tasksToday}</p>
+            {tasksDueToday.length > 0 && (
+              <>
+                <div className="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-surface-hover">
+                  {todayStatusBreakdown
+                    .filter((entry) => entry.percent > 0)
+                    .map((entry) => (
+                      <div
+                        key={entry.status}
+                        className={STATUS_DOT_CLASS[entry.status]}
+                        style={{ width: `${entry.percent}%` }}
+                        title={`${entry.status} · ${entry.percent}%`}
+                      />
+                    ))}
+                </div>
+                <p className="mt-2 text-xs text-muted">
+                  {todayStatusBreakdown
+                    .filter((entry) => entry.count > 0)
+                    .map((entry) => `${entry.count} ${entry.status.toLowerCase()}`)
+                    .join(' · ')}
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {SECONDARY_CARD_DEFS.map(({ key, label, caption }) => (
           <Card key={key}>
             <CardHeader>
               <CardTitle className="text-sm font-normal text-muted">{label}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-semibold text-text">{metrics[key]}</p>
+              {caption && <p className="mt-1 text-xs text-muted">{caption}</p>}
             </CardContent>
           </Card>
         ))}
@@ -155,6 +206,41 @@ function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <div className="mt-6">
+        <CompletionTrendChart tasks={tasks} />
+      </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-sm font-normal text-muted">Workload by status</CardTitle>
+          <p className="mt-1 text-xs text-faint">
+            {tasks.length} task{tasks.length === 1 ? '' : 's'} total
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-hover">
+            {statusBreakdown
+              .filter((entry) => entry.percent > 0)
+              .map((entry) => (
+                <div
+                  key={entry.status}
+                  className={STATUS_DOT_CLASS[entry.status]}
+                  style={{ width: `${entry.percent}%` }}
+                  title={`${entry.status} · ${entry.percent}%`}
+                />
+              ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+            {statusBreakdown.map((entry) => (
+              <div key={entry.status} className="flex items-center gap-2 text-xs text-muted">
+                <span className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT_CLASS[entry.status])} />
+                {entry.status} {entry.percent}%
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="mt-6">
         <CardHeader>
