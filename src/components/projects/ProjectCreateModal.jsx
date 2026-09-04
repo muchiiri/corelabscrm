@@ -35,8 +35,8 @@ const DEAL_CURRENCIES = ['USD', 'KES', 'AED']
 
 const CAPTION_CLASS = 'text-xs font-semibold uppercase tracking-wide text-muted'
 
-function ProjectCreateModal({ open, onOpenChange, createProject, clients, members }) {
-  const [values, setValues] = useState(INITIAL_VALUES)
+function ProjectCreateModal({ open, onOpenChange, createProject, clients, members, initialValues = {} }) {
+  const [values, setValues] = useState({ ...INITIAL_VALUES, ...initialValues })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
