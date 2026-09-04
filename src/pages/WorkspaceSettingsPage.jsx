@@ -16,11 +16,14 @@ import { validateAddMemberForm } from '@/lib/validateAddMemberForm'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+import { useAuth } from '@/lib/AuthContext'
+import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 
 const ADD_MEMBER_INITIAL_VALUES = { email: '', role: 'Editor' }
 
 function WorkspaceSettingsPage() {
+  const { user } = useAuth()
   const { currentWorkspace, refetch } = useWorkspace()
   const { members, refetch: refetchMembers } = useWorkspaceMembers(currentWorkspace?.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace?.id)
@@ -88,6 +91,14 @@ function WorkspaceSettingsPage() {
       setIsAddingMember(false)
       return
     }
+
+    const actorName = members.find((member) => member.id === user.id)?.name || user.email
+    logActivity(
+      currentWorkspace.id,
+      user.id,
+      `${actorName} added ${addMemberValues.email.trim()} as ${addMemberValues.role}`,
+      'workspace_member',
+    )
 
     await refetchMembers()
     setAddMemberValues(ADD_MEMBER_INITIAL_VALUES)

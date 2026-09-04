@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/AuthContext'
+import { logActivity } from '@/lib/logActivity'
 
 export function useWorkspaceProjects(workspaceId) {
+  const { user } = useAuth()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -54,6 +57,7 @@ export function useWorkspaceProjects(workspaceId) {
     }
 
     setProjects((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+    logActivity(workspaceId, user.id, `${user.email} created project "${data.name}"`, 'project', data.id)
     return data
   }
 

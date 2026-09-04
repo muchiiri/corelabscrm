@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/AuthContext'
+import { logActivity } from '@/lib/logActivity'
 
 export function useWorkspaceClients(workspaceId) {
+  const { user } = useAuth()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -61,6 +64,7 @@ export function useWorkspaceClients(workspaceId) {
     }
 
     setClients((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+    logActivity(workspaceId, user.id, `${user.email} added client "${data.name}"`, 'client', data.id)
     return data
   }
 

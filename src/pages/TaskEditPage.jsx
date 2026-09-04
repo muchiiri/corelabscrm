@@ -12,6 +12,8 @@ import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+import { useAuth } from '@/lib/AuthContext'
+import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 
 function toDatetimeLocalValue(isoString) {
@@ -37,6 +39,7 @@ function toDateValue(isoString) {
 function TaskEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
@@ -172,6 +175,17 @@ function TaskEditPage() {
       setSubmitError('Something went wrong saving your task. Please try again.')
       setIsSubmitting(false)
       return
+    }
+
+    if (initialStatus !== values.status) {
+      const actorName = members.find((member) => member.id === user.id)?.name || user.email
+      logActivity(
+        currentWorkspace.id,
+        user.id,
+        `${actorName} moved "${values.title}" to ${values.status}`,
+        'task',
+        id,
+      )
     }
 
     // Delete-and-reinsert rather than diffing - simpler and just as correct

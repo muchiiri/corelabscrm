@@ -15,6 +15,8 @@ import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+import { useAuth } from '@/lib/AuthContext'
+import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 import { filterTasks } from '@/lib/filterTasks'
 import { getDatePresetRange } from '@/lib/getDatePresetRange'
@@ -33,6 +35,7 @@ const INITIAL_FILTERS = {
 const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'Future']
 
 function TaskListPage() {
+  const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
@@ -170,6 +173,7 @@ function TaskListPage() {
     setCompleteError(null)
     const previousTasks = tasks
     const newStatus = isChecked ? 'Done' : 'Todo'
+    const task = tasks.find((t) => t.id === taskId)
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)))
 
     // .select().single() turns a Viewer's RLS-filtered write into a real
@@ -185,6 +189,9 @@ function TaskListPage() {
       console.error('Failed to update task status:', error)
       setTasks(previousTasks)
       setCompleteError('Something went wrong updating that task. Please try again.')
+    } else if (task) {
+      const actorName = members.find((member) => member.id === user.id)?.name || user.email
+      logActivity(currentWorkspace.id, user.id, `${actorName} moved "${task.title}" to ${newStatus}`, 'task', taskId)
     }
   }
 
@@ -245,6 +252,9 @@ function TaskListPage() {
       setBulkActionError('Something went wrong updating those tasks. Please try again.')
     } else {
       setSelectedIds(new Set())
+      const actorName = members.find((member) => member.id === user.id)?.name || user.email
+      const taskWord = ids.length === 1 ? 'task' : 'tasks'
+      logActivity(currentWorkspace.id, user.id, `${actorName} moved ${ids.length} ${taskWord} to ${status}`, 'task')
     }
     setIsBulkActionPending(false)
   }

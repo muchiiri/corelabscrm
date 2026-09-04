@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+import { useAuth } from '@/lib/AuthContext'
+import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
@@ -16,6 +18,7 @@ const STATUS_COLUMNS = ['Todo', 'In Progress', 'Blocked', 'Waiting', 'Done']
 
 function KanbanPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
@@ -77,6 +80,9 @@ function KanbanPage() {
       console.error('Failed to update task status:', error)
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t)))
       setDropError('Something went wrong updating that task. Please try again.')
+    } else {
+      const actorName = members.find((member) => member.id === user.id)?.name || user.email
+      logActivity(currentWorkspace.id, user.id, `${actorName} moved "${task.title}" to ${newStatus}`, 'task', taskId)
     }
   }
 

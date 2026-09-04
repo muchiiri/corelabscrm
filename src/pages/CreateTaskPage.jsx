@@ -8,6 +8,8 @@ import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
+import { useAuth } from '@/lib/AuthContext'
+import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 
 const INITIAL_VALUES = {
@@ -27,6 +29,7 @@ const INITIAL_VALUES = {
 
 function CreateTaskPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
@@ -107,6 +110,9 @@ function CreateTaskPage() {
         console.error('Failed to save tags:', tagInsertError)
       }
     }
+
+    const actorName = members.find((member) => member.id === user.id)?.name || user.email
+    logActivity(currentWorkspace.id, user.id, `${actorName} created "${values.title}"`, 'task', newTask.id)
 
     navigate('/tasks')
   }
