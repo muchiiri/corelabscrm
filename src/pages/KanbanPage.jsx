@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Bell, Plus, Search } from 'lucide-react'
 import { STATUS_DOT_CLASS } from '@/components/tasks/StatusBadge'
 import { Avatar } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import PageHeader from '@/components/layout/PageHeader'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
@@ -104,11 +106,62 @@ function KanbanPage() {
 
   const membersById = new Map(members.map((member) => [member.id, member]))
   const projectsById = new Map(projects.map((project) => [project.id, project]))
+  const overdueCount = tasks.filter((task) => isTaskOverdue(task)).length
 
   return (
     <div className="p-8">
-      <h1 className="mb-1 text-heading font-semibold text-text">Kanban</h1>
-      <p className="mb-6 text-sm text-muted">Drag a card between columns to change status.</p>
+      <PageHeader
+        title="Tasks Kanban"
+        subtitle={`${tasks.length} task${tasks.length === 1 ? '' : 's'}, ${overdueCount} overdue`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Search"
+              className="bg-surface-hover"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Notifications"
+              className="bg-surface-hover"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            {canWrite && (
+              <Button asChild>
+                <Link to="/tasks/new">New task</Link>
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-muted">Drag a card between columns to change status.</p>
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-2">
+            {members.slice(0, 5).map((member) => (
+              <Avatar
+                key={member.id}
+                name={member.name}
+                email={member.email}
+                className="border-2 border-surface"
+              />
+            ))}
+          </div>
+          <Button type="button" variant="outline" size="sm" disabled>
+            Group: Status
+          </Button>
+        </div>
+      </div>
 
       {dropError && (
         <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{dropError}</p>
