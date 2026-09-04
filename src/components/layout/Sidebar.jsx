@@ -40,7 +40,7 @@ function Sidebar() {
               to={to}
               className={cn(
                 'flex items-center gap-3 rounded-sm px-2.5 py-2 text-sm transition',
-                active ? 'bg-accent-bg font-medium text-accent' : 'text-text hover:bg-surface-hover',
+                active ? 'bg-accent-bg font-semibold text-accent' : 'font-semibold text-text hover:bg-surface-hover',
               )}
             >
               <Icon className="h-5 w-5 shrink-0" />
