@@ -9,8 +9,15 @@ export function useActivityFeed(workspaceId) {
 
   useEffect(() => {
     let cancelled = false
+    // Guards two calls to load() racing within this same effect run (the
+    // initial fetch and an 'activity-log:changed' event firing before it
+    // resolves) - `cancelled` alone only protects against a stale run from
+    // before a workspace switch, not overlapping calls within one run.
+    let requestId = 0
 
     async function load() {
+      const currentRequestId = ++requestId
+
       if (!workspaceId) {
         setActivity([])
         setLoading(false)
@@ -26,7 +33,7 @@ export function useActivityFeed(workspaceId) {
         .order('occurred_at', { ascending: false })
         .limit(FEED_LIMIT)
 
-      if (cancelled) {
+      if (cancelled || requestId !== currentRequestId) {
         return
       }
       if (error) {
@@ -48,7 +55,7 @@ export function useActivityFeed(workspaceId) {
         .select('id, name, email')
         .in('id', actorIds)
 
-      if (cancelled) {
+      if (cancelled || requestId !== currentRequestId) {
         return
       }
       if (profileError) {
@@ -64,8 +71,10 @@ export function useActivityFeed(workspaceId) {
     }
 
     load()
+    window.addEventListener('activity-log:changed', load)
     return () => {
       cancelled = true
+      window.removeEventListener('activity-log:changed', load)
     }
   }, [workspaceId])
 

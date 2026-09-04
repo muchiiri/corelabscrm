@@ -11,5 +11,8 @@ export async function logActivity(workspaceId, actorId, summary, entityType = nu
 
   if (error) {
     console.error('Failed to log activity:', error)
+    return
   }
+
+  window.dispatchEvent(new Event('activity-log:changed'))
 }
