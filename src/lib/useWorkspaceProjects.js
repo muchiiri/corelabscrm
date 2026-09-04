@@ -22,7 +22,7 @@ export function useWorkspaceProjects(workspaceId) {
 
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name')
+        .select('id, name, client_id, status, description')
         .eq('workspace_id', workspaceId)
         .order('name', { ascending: true })
 
@@ -45,11 +45,16 @@ export function useWorkspaceProjects(workspaceId) {
     }
   }, [workspaceId])
 
-  async function createProject(name, clientId) {
+  async function createProject(name, clientId, description) {
     const { data, error } = await supabase
       .from('projects')
-      .insert({ workspace_id: workspaceId, name: name.trim(), client_id: clientId || null })
-      .select('id, name')
+      .insert({
+        workspace_id: workspaceId,
+        name: name.trim(),
+        client_id: clientId || null,
+        description: description?.trim() || null,
+      })
+      .select('id, name, client_id, status, description')
       .single()
 
     if (error) {
