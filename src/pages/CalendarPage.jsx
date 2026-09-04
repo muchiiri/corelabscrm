@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Bell, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import PageHeader from '@/components/layout/PageHeader'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 import { getCalendarGridDates } from '@/lib/getCalendarGridDates'
@@ -96,6 +97,7 @@ function CalendarPage() {
     month: 'long',
     day: 'numeric',
   })
+  const scheduledCount = Object.values(tasksByDate).reduce((sum, dayTasks) => sum + dayTasks.length, 0)
 
   function goToPreviousMonth() {
     setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
@@ -110,7 +112,37 @@ function CalendarPage() {
 
   return (
     <div className="p-8">
-      <h1 className="mb-6 text-heading font-semibold text-text">Calendar</h1>
+      <PageHeader
+        title="Calendar"
+        subtitle={`${visibleMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · ${scheduledCount} scheduled task${scheduledCount === 1 ? '' : 's'}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Search"
+              className="bg-surface-hover"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Notifications"
+              className="bg-surface-hover"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button asChild>
+              <Link to="/tasks/new">New task</Link>
+            </Button>
+          </div>
+        }
+      />
       <div className="flex flex-wrap items-start gap-6">
       <div className="min-w-0 flex-1">
       <div className="mb-4 flex items-center gap-3">
@@ -135,7 +167,7 @@ function CalendarPage() {
       </div>
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded-sm border border-border bg-border">
         {WEEKDAY_LABELS.map((label) => (
-          <div key={label} className="bg-bg px-2 py-1 text-xs font-medium text-muted">
+          <div key={label} className="bg-surface px-2 py-1 text-xs font-medium text-muted">
             {label}
           </div>
         ))}
@@ -152,7 +184,7 @@ function CalendarPage() {
               key={key}
               onClick={() => setSelectedDate(key)}
               className={cn(
-                'min-h-24 cursor-pointer bg-bg p-1.5',
+                'min-h-24 cursor-pointer bg-surface p-1.5',
                 isSelected && 'bg-accent-bg ring-1 ring-inset ring-accent-border',
               )}
             >
@@ -222,7 +254,7 @@ function CalendarPage() {
                   >
                     <span
                       className={cn(
-                        'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                        'w-1 shrink-0 self-stretch rounded-full',
                         PRIORITY_DOT_CLASS[task.priority],
                       )}
                     />
