@@ -28,7 +28,7 @@ function Sidebar() {
   const me = members.find((member) => member.id === user?.id)
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col gap-6 border-r border-border bg-surface px-4 py-5">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col gap-6 border-r border-border bg-surface px-4 py-5">
       <WorkspaceSwitcher />
 
       <nav className="flex flex-1 flex-col gap-0.5">
