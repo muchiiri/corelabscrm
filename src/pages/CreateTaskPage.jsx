@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import TaskForm from '@/components/tasks/TaskForm'
 import { validateTaskForm } from '@/lib/validateTaskForm'
 import { validateRecurrenceRule } from '@/lib/validateRecurrenceRule'
@@ -11,6 +11,8 @@ import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
+
+const VALID_STATUSES = ['Todo', 'In Progress', 'Blocked', 'Waiting', 'Done']
 
 const INITIAL_VALUES = {
   title: '',
@@ -29,13 +31,18 @@ const INITIAL_VALUES = {
 
 function CreateTaskPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { clients } = useWorkspaceClients(currentWorkspace.id)
-  const [values, setValues] = useState(INITIAL_VALUES)
+  const statusParam = searchParams.get('status')
+  const [values, setValues] = useState({
+    ...INITIAL_VALUES,
+    status: VALID_STATUSES.includes(statusParam) ? statusParam : INITIAL_VALUES.status,
+  })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)

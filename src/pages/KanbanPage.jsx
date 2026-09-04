@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import PriorityBadge from '@/components/tasks/PriorityBadge'
+import { Link, useNavigate } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import { STATUS_DOT_CLASS } from '@/components/tasks/StatusBadge'
 import { Avatar } from '@/components/ui/avatar'
 import { Card } from '@/components/ui/card'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
+import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
@@ -16,11 +17,22 @@ import { cn } from '@/lib/utils'
 
 const STATUS_COLUMNS = ['Todo', 'In Progress', 'Blocked', 'Waiting', 'Done']
 
+// Local to this page, not the shared PriorityBadge component - same
+// reasoning as TaskListPage's STATUS_PILL_CLASS (feature 32c). Literal
+// class strings, not `bg-priority-${priority}/15` interpolation, so
+// Tailwind's build-time scanner can see them.
+const PRIORITY_PILL_CLASS = {
+  High: 'bg-priority-high/15 text-priority-high',
+  Medium: 'bg-priority-medium/15 text-priority-medium',
+  Low: 'bg-priority-low/15 text-priority-low',
+}
+
 function KanbanPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
   const [tasks, setTasks] = useState([])
@@ -33,7 +45,7 @@ function KanbanPage() {
     async function load() {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at, assignee_id, snoozed_until')
+        .select('id, title, priority, status, due_at, assignee_id, project_id, snoozed_until')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
@@ -91,10 +103,12 @@ function KanbanPage() {
   }
 
   const membersById = new Map(members.map((member) => [member.id, member]))
+  const projectsById = new Map(projects.map((project) => [project.id, project]))
 
   return (
     <div className="p-8">
-      <h1 className="mb-6 text-heading font-semibold text-text">Kanban</h1>
+      <h1 className="mb-1 text-heading font-semibold text-text">Kanban</h1>
+      <p className="mb-6 text-sm text-muted">Drag a card between columns to change status.</p>
 
       {dropError && (
         <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{dropError}</p>
@@ -104,11 +118,16 @@ function KanbanPage() {
         {STATUS_COLUMNS.map((status) => {
           const columnTasks = tasks.filter((task) => task.status === status)
           return (
-            <div key={status} className="flex w-64 shrink-0 flex-col gap-3">
+            <div
+              key={status}
+              className="flex w-64 shrink-0 flex-col gap-3 rounded-lg bg-surface-hover p-3"
+            >
               <div className="flex items-center gap-1.5 text-sm text-muted">
                 <span className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT_CLASS[status])} />
                 {status}
-                <span className="text-faint">({columnTasks.length})</span>
+                <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-xs text-faint">
+                  {columnTasks.length}
+                </span>
               </div>
 
               <div
@@ -116,19 +135,34 @@ function KanbanPage() {
                 onDragOver={canWrite ? handleDragOver : undefined}
                 onDrop={canWrite ? (event) => handleDrop(event, status) : undefined}
               >
+                {columnTasks.length === 0 && (
+                  <div className="rounded-lg border border-dashed border-border bg-surface p-4 text-center">
+                    <p className="text-xs font-medium text-text">Nothing in {status}</p>
+                    <p className="mt-1 text-xs text-muted">Drag a task here to move it to {status}.</p>
+                  </div>
+                )}
                 {columnTasks.map((task) => {
                   const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
+                  const project = task.project_id ? projectsById.get(task.project_id) : null
                   return (
                     <Card
                       key={task.id}
                       onClick={() => navigate(`/tasks/${task.id}/edit`)}
                       draggable={canWrite}
                       onDragStart={canWrite ? (event) => handleDragStart(event, task.id) : undefined}
-                      className={cn('p-3 hover:bg-border', canWrite ? 'cursor-grab' : 'cursor-pointer')}
+                      className={cn('p-3 hover:shadow-md', canWrite ? 'cursor-grab' : 'cursor-pointer')}
                     >
-                      <p className="mb-2 text-sm text-text">{task.title}</p>
-                      <div className="mb-2">
-                        <PriorityBadge priority={task.priority} />
+                      <p className="text-sm text-text">{task.title}</p>
+                      {project && <p className="text-xs text-muted">{project.name}</p>}
+                      <div className="mb-2 mt-2">
+                        <span
+                          className={cn(
+                            'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                            PRIORITY_PILL_CLASS[task.priority],
+                          )}
+                        >
+                          {task.priority}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         {assignee ? (
@@ -154,6 +188,16 @@ function KanbanPage() {
                   )
                 })}
               </div>
+
+              {canWrite && (
+                <Link
+                  to={`/tasks/new?status=${encodeURIComponent(status)}`}
+                  className="flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs text-muted hover:bg-surface hover:text-text"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add task
+                </Link>
+              )}
             </div>
           )
         })}
