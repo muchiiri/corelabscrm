@@ -13,6 +13,7 @@ import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 
 const VALID_STATUSES = ['Todo', 'In Progress', 'Blocked', 'Waiting', 'Done']
+const DUE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 const INITIAL_VALUES = {
   title: '',
@@ -39,9 +40,11 @@ function CreateTaskPage() {
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { clients } = useWorkspaceClients(currentWorkspace.id)
   const statusParam = searchParams.get('status')
+  const dueDateParam = searchParams.get('dueDate')
   const [values, setValues] = useState({
     ...INITIAL_VALUES,
     status: VALID_STATUSES.includes(statusParam) ? statusParam : INITIAL_VALUES.status,
+    dueAt: DUE_DATE_PATTERN.test(dueDateParam) ? `${dueDateParam}T09:00` : INITIAL_VALUES.dueAt,
   })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
