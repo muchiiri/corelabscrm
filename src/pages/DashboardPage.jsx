@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Bell, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
 import CompletionTrendChart from '@/components/dashboard/CompletionTrendChart'
+import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
 import { useAuth } from '@/lib/AuthContext'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
+import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { supabase } from '@/lib/supabase'
 import { computeDashboardMetrics } from '@/lib/computeDashboardMetrics'
 import { isTaskDueToday } from '@/lib/isTaskDueToday'
@@ -36,19 +38,30 @@ function DashboardPage() {
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { clients } = useWorkspaceClients(currentWorkspace.id)
+  const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
+    // Guards two calls to load() racing within this same effect run (the
+    // initial fetch and a 'tasks:changed' event firing before it resolves) -
+    // same shape as useActivityFeed.js's requestId guard. Matters here more
+    // than it looks: these stats are the first thing to go stale without it,
+    // since a task created from this page's own modal used to require a
+    // full navigation (and remount) to show up.
+    let requestId = 0
 
     async function load() {
+      const currentRequestId = ++requestId
+
       const { data, error } = await supabase
         .from('tasks')
         .select('id, title, priority, status, due_at, updated_at, assignee_id, project_id, snoozed_until')
         .eq('workspace_id', currentWorkspace.id)
 
-      if (cancelled) {
+      if (cancelled || requestId !== currentRequestId) {
         return
       }
       if (error) {
@@ -61,8 +74,10 @@ function DashboardPage() {
     }
 
     load()
+    window.addEventListener('tasks:changed', load)
     return () => {
       cancelled = true
+      window.removeEventListener('tasks:changed', load)
     }
   }, [currentWorkspace.id])
 
@@ -145,11 +160,13 @@ function DashboardPage() {
             >
               <Bell className="h-4 w-4" />
             </Button>
-            <Button asChild className="bg-[#1F2937] text-white hover:bg-[#111827] hover:opacity-100">
-              <Link to="/tasks/new">
-                <Plus className="h-4 w-4" />
-                New
-              </Link>
+            <Button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="bg-[#1F2937] text-white hover:bg-[#111827] hover:opacity-100"
+            >
+              <Plus className="h-4 w-4" />
+              New
             </Button>
           </div>
         }
@@ -330,6 +347,17 @@ function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      <TaskCreateModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        workspaceId={currentWorkspace.id}
+        members={members}
+        tags={tags}
+        onCreateTag={createTag}
+        projects={projects}
+        initialValues={{}}
+      />
     </div>
   )
 }

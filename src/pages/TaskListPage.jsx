@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Bell, Circle, CircleCheck, CircleDot, CircleSlash, Clock, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import PageHeader from '@/components/layout/PageHeader'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
 import TaskSnoozeControl from '@/components/tasks/TaskSnoozeControl'
+import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { Avatar } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
 import BulkActionToolbar from '@/components/tasks/BulkActionToolbar'
@@ -16,6 +17,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
+import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
@@ -65,6 +67,7 @@ function TaskListPage() {
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { clients } = useWorkspaceClients(currentWorkspace.id)
+  const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
   const navigate = useNavigate()
@@ -77,9 +80,14 @@ function TaskListPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isBulkActionPending, setIsBulkActionPending] = useState(false)
   const [bulkActionError, setBulkActionError] = useState(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
+    // Guards two calls to load() racing within this same effect run (the
+    // initial fetch and a 'tasks:changed' event firing before it resolves) -
+    // same shape as useActivityFeed.js's requestId guard.
+    let requestId = 0
     // A workspace switch reloads `tasks` here; without also resetting
     // selection, ids from the previous workspace would linger, stale and
     // unmatched by any row in the new list.
@@ -87,13 +95,15 @@ function TaskListPage() {
     setCurrentPage(1)
 
     async function load() {
+      const currentRequestId = ++requestId
+
       const { data, error } = await supabase
         .from('tasks')
         .select('id, title, priority, status, due_at, assignee_id, project_id, client_id, snoozed_until')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
-      if (cancelled) {
+      if (cancelled || requestId !== currentRequestId) {
         return
       }
       if (error) {
@@ -122,7 +132,7 @@ function TaskListPage() {
         .select('task_id, tags(id, name, color)')
         .in('task_id', taskIds)
 
-      if (cancelled) {
+      if (cancelled || requestId !== currentRequestId) {
         return
       }
       if (taskTagsError) {
@@ -142,8 +152,10 @@ function TaskListPage() {
     }
 
     load()
+    window.addEventListener('tasks:changed', load)
     return () => {
       cancelled = true
+      window.removeEventListener('tasks:changed', load)
     }
   }, [currentWorkspace.id])
 
@@ -335,8 +347,8 @@ function TaskListPage() {
               <Bell className="h-4 w-4" />
             </Button>
             {canWrite && (
-              <Button asChild>
-                <Link to="/tasks/new">New task</Link>
+              <Button type="button" onClick={() => setIsCreateOpen(true)}>
+                New task
               </Button>
             )}
           </div>
@@ -355,9 +367,13 @@ function TaskListPage() {
           {canWrite ? (
             <>
               No tasks yet.{' '}
-              <Link to="/tasks/new" className="text-secondary hover:underline">
+              <button
+                type="button"
+                className="text-secondary hover:underline"
+                onClick={() => setIsCreateOpen(true)}
+              >
                 Create your first one
-              </Link>
+              </button>
               .
             </>
           ) : (
@@ -621,6 +637,17 @@ function TaskListPage() {
           </Card>
         </>
       )}
+
+      <TaskCreateModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        workspaceId={currentWorkspace.id}
+        members={members}
+        tags={tags}
+        onCreateTag={createTag}
+        projects={projects}
+        initialValues={{}}
+      />
     </div>
   )
 }

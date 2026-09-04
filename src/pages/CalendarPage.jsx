@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Bell, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
+import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
+import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
+import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
+import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { supabase } from '@/lib/supabase'
 import { getCalendarGridDates } from '@/lib/getCalendarGridDates'
 import { cn } from '@/lib/utils'
@@ -42,6 +46,9 @@ function parseDateKey(dateKey) {
 function CalendarPage() {
   const navigate = useNavigate()
   const { currentWorkspace } = useWorkspace()
+  const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { projects } = useWorkspaceProjects(currentWorkspace.id)
+  const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
@@ -49,6 +56,7 @@ function CalendarPage() {
   const [tasksByDate, setTasksByDate] = useState({})
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()))
+  const [createDefaults, setCreateDefaults] = useState(null)
 
   const gridDates = getCalendarGridDates(visibleMonth.getFullYear(), visibleMonth.getMonth())
   const gridStart = gridDates[0]
@@ -59,7 +67,12 @@ function CalendarPage() {
 
   useEffect(() => {
     let cancelled = false
+    // Guards two calls to load() racing within this same effect run (the
+    // initial fetch and a 'tasks:changed' event firing before it resolves) -
+    // same shape as useActivityFeed.js's requestId guard.
+    let requestId = 0
     async function load() {
+      const currentRequestId = ++requestId
       setLoading(true)
       const { data, error } = await supabase
         .from('tasks')
@@ -67,7 +80,7 @@ function CalendarPage() {
         .eq('workspace_id', currentWorkspace.id)
         .gte('due_at', new Date(gridStartMs).toISOString())
         .lt('due_at', new Date(rangeEndExclusiveMs).toISOString())
-      if (cancelled) return
+      if (cancelled || requestId !== currentRequestId) return
       if (error) {
         console.error('Failed to load tasks:', error)
         setTasksByDate({})
@@ -83,8 +96,10 @@ function CalendarPage() {
       setLoading(false)
     }
     load()
+    window.addEventListener('tasks:changed', load)
     return () => {
       cancelled = true
+      window.removeEventListener('tasks:changed', load)
     }
   }, [currentWorkspace.id, gridStartMs, rangeEndExclusiveMs])
 
@@ -137,8 +152,8 @@ function CalendarPage() {
             >
               <Bell className="h-4 w-4" />
             </Button>
-            <Button asChild>
-              <Link to="/tasks/new">New task</Link>
+            <Button type="button" onClick={() => setCreateDefaults({})}>
+              New task
             </Button>
           </div>
         }
@@ -236,12 +251,13 @@ function CalendarPage() {
             {selectedDayTasks.length === 0 ? (
               <div>
                 <p className="text-sm text-muted">Nothing scheduled.</p>
-                <Link
-                  to={`/tasks/new?dueDate=${selectedDate}`}
+                <button
+                  type="button"
+                  onClick={() => setCreateDefaults({ dueAt: `${selectedDate}T09:00` })}
                   className="mt-3 inline-block text-sm text-secondary hover:underline"
                 >
                   Schedule a task
-                </Link>
+                </button>
               </div>
             ) : (
               <div className="flex flex-col gap-1">
@@ -291,6 +307,17 @@ function CalendarPage() {
         </Card>
       </div>
       </div>
+
+      <TaskCreateModal
+        open={createDefaults !== null}
+        onOpenChange={(next) => !next && setCreateDefaults(null)}
+        workspaceId={currentWorkspace.id}
+        members={members}
+        tags={tags}
+        onCreateTag={createTag}
+        projects={projects}
+        initialValues={createDefaults ?? {}}
+      />
     </div>
   )
 }

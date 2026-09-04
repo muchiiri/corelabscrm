@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Bell, Plus, Search } from 'lucide-react'
 import { STATUS_DOT_CLASS } from '@/components/tasks/StatusBadge'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
+import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
+import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
@@ -35,23 +37,31 @@ function KanbanPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
+  const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [dropError, setDropError] = useState(null)
+  const [createDefaults, setCreateDefaults] = useState(null)
 
   useEffect(() => {
     let cancelled = false
+    // Guards two calls to load() racing within this same effect run (the
+    // initial fetch and a 'tasks:changed' event firing before it resolves) -
+    // same shape as useActivityFeed.js's requestId guard.
+    let requestId = 0
 
     async function load() {
+      const currentRequestId = ++requestId
+
       const { data, error } = await supabase
         .from('tasks')
         .select('id, title, priority, status, due_at, assignee_id, project_id, snoozed_until')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
-      if (cancelled) {
+      if (cancelled || requestId !== currentRequestId) {
         return
       }
       if (error) {
@@ -64,8 +74,10 @@ function KanbanPage() {
     }
 
     load()
+    window.addEventListener('tasks:changed', load)
     return () => {
       cancelled = true
+      window.removeEventListener('tasks:changed', load)
     }
   }, [currentWorkspace.id])
 
@@ -136,8 +148,8 @@ function KanbanPage() {
               <Bell className="h-4 w-4" />
             </Button>
             {canWrite && (
-              <Button asChild>
-                <Link to="/tasks/new">New task</Link>
+              <Button type="button" onClick={() => setCreateDefaults({})}>
+                New task
               </Button>
             )}
           </div>
@@ -243,18 +255,30 @@ function KanbanPage() {
               </div>
 
               {canWrite && (
-                <Link
-                  to={`/tasks/new?status=${encodeURIComponent(status)}`}
+                <button
+                  type="button"
+                  onClick={() => setCreateDefaults({ status })}
                   className="flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs text-muted hover:bg-surface hover:text-text"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add task
-                </Link>
+                </button>
               )}
             </div>
           )
         })}
       </div>
+
+      <TaskCreateModal
+        open={createDefaults !== null}
+        onOpenChange={(next) => !next && setCreateDefaults(null)}
+        workspaceId={currentWorkspace.id}
+        members={members}
+        tags={tags}
+        onCreateTag={createTag}
+        projects={projects}
+        initialValues={createDefaults ?? {}}
+      />
     </div>
   )
 }
