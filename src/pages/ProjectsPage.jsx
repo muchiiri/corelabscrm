@@ -13,8 +13,12 @@ import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
 import { groupTasksByProjectId } from '@/lib/groupTasksByProjectId'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
+import { rowsToCsv } from '@/lib/rowsToCsv'
+import { downloadTextFile } from '@/lib/downloadTextFile'
+import { buildReportPdf } from '@/lib/buildReportPdf'
 
 const INITIAL_VALUES = { name: '', clientId: '' }
+const REPORT_HEADERS = ['Project', 'Client', 'Completion %', 'Completed', 'Total']
 
 function ProjectsPage() {
   const { currentWorkspace } = useWorkspace()
@@ -56,6 +60,49 @@ function ProjectsPage() {
   }, [currentWorkspace.id])
 
   const tasksByProjectId = groupTasksByProjectId(tasks)
+  const clientsById = new Map(clients.map((client) => [client.id, client]))
+
+  function buildReportRows() {
+    return projects.map((project) => {
+      const completionRate = computeCompletionRate(tasksByProjectId.get(project.id) || [])
+      const client = project.client_id ? clientsById.get(project.client_id) : null
+      return [
+        project.name,
+        client ? client.name : 'No client',
+        completionRate.rate,
+        completionRate.completed,
+        completionRate.total,
+      ]
+    })
+  }
+
+  async function logReport(format) {
+    const today = new Date().toISOString().slice(0, 10)
+    const { error } = await supabase.from('reports').insert({
+      workspace_id: currentWorkspace.id,
+      type: 'project-status',
+      format,
+      period_start: today,
+      period_end: today,
+    })
+    if (error) {
+      console.error('Failed to log report export:', error)
+    }
+  }
+
+  function handleExportCsv() {
+    const today = new Date().toISOString().slice(0, 10)
+    const csv = rowsToCsv(REPORT_HEADERS, buildReportRows())
+    downloadTextFile(`project-status-report-${today}.csv`, csv, 'text/csv')
+    logReport('csv')
+  }
+
+  function handleExportPdf() {
+    const today = new Date().toISOString().slice(0, 10)
+    const doc = buildReportPdf('Project status report', REPORT_HEADERS, buildReportRows())
+    doc.save(`project-status-report-${today}.pdf`)
+    logReport('pdf')
+  }
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -89,8 +136,16 @@ function ProjectsPage() {
       <h1 className="mb-6 text-heading font-semibold text-text">Projects</h1>
 
       <Card className="max-w-sm">
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between">
           <CardTitle className="text-heading">All projects</CardTitle>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+              Export CSV
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleExportPdf}>
+              Export PDF
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {projects.length === 0 ? (

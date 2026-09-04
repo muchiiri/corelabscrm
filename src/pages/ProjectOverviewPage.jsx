@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import StatusBadge from '@/components/tasks/StatusBadge'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
 import { Avatar } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import TagBadge from '@/components/tags/TagBadge'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
@@ -13,6 +14,11 @@ import { cn } from '@/lib/utils'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
+import { rowsToCsv } from '@/lib/rowsToCsv'
+import { downloadTextFile } from '@/lib/downloadTextFile'
+import { buildReportPdf } from '@/lib/buildReportPdf'
+
+const TASK_REPORT_HEADERS = ['Task', 'Priority', 'Status', 'Due Date', 'Assignee']
 
 function ProjectOverviewPage() {
   const { id } = useParams()
@@ -124,6 +130,53 @@ function ProjectOverviewPage() {
   const client = project.client_id ? clients.find((c) => c.id === project.client_id) : null
   const completionRate = computeCompletionRate(tasks)
 
+  const projectSlug = project.name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  function buildTaskReportRows() {
+    return tasks.map((task) => {
+      const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
+      return [
+        task.title,
+        task.priority,
+        task.status,
+        task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date',
+        assignee ? assignee.name || assignee.email : 'Unassigned',
+      ]
+    })
+  }
+
+  async function logReport(format) {
+    const today = new Date().toISOString().slice(0, 10)
+    const { error } = await supabase.from('reports').insert({
+      workspace_id: currentWorkspace.id,
+      type: 'project-status',
+      format,
+      period_start: today,
+      period_end: today,
+    })
+    if (error) {
+      console.error('Failed to log report export:', error)
+    }
+  }
+
+  function handleExportCsv() {
+    const today = new Date().toISOString().slice(0, 10)
+    const csv = rowsToCsv(TASK_REPORT_HEADERS, buildTaskReportRows())
+    downloadTextFile(`${projectSlug}-tasks-${today}.csv`, csv, 'text/csv')
+    logReport('csv')
+  }
+
+  function handleExportPdf() {
+    const today = new Date().toISOString().slice(0, 10)
+    const doc = buildReportPdf(`${project.name} - Tasks`, TASK_REPORT_HEADERS, buildTaskReportRows())
+    doc.save(`${projectSlug}-tasks-${today}.pdf`)
+    logReport('pdf')
+  }
+
   return (
     <div className="p-8">
       <h1 className="text-heading font-semibold text-text">{project.name}</h1>
@@ -143,6 +196,15 @@ function ProjectOverviewPage() {
           </p>
         </CardContent>
       </Card>
+
+      <div className="mb-4 flex gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+          Export CSV
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={handleExportPdf}>
+          Export PDF
+        </Button>
+      </div>
 
       {tasks.length === 0 ? (
         <p className="text-muted">No tasks in this project yet.</p>
