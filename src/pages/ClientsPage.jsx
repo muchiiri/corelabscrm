@@ -1,33 +1,29 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Bell, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
-import { validateClientForm } from '@/lib/validateClientForm'
+import ClientCreateModal from '@/components/clients/ClientCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
+import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { supabase } from '@/lib/supabase'
 
-const INITIAL_VALUES = { name: '', email: '', phone: '', company: '', website: '' }
-
 function ClientsPage() {
   const { currentWorkspace } = useWorkspace()
   const { clients, createClient } = useWorkspaceClients(currentWorkspace.id)
+  const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
 
   const [search, setSearch] = useState('')
-  const [values, setValues] = useState(INITIAL_VALUES)
-  const [errors, setErrors] = useState({})
-  const [submitError, setSubmitError] = useState(null)
-  const [isCreating, setIsCreating] = useState(false)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [projectCountByClientId, setProjectCountByClientId] = useState({})
 
   useEffect(() => {
@@ -154,36 +150,41 @@ function ClientsPage() {
       )
     : clients
 
-  function handleChange(event) {
-    const { name, value } = event.target
-    setValues((prev) => ({ ...prev, [name]: value }))
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    const validationErrors = validateClientForm(values)
-    setErrors(validationErrors)
-    if (Object.keys(validationErrors).length > 0) {
-      return
-    }
-
-    setSubmitError(null)
-    setIsCreating(true)
-
-    try {
-      await createClient(values)
-      setValues(INITIAL_VALUES)
-    } catch (createError) {
-      console.error('Failed to create client:', createError)
-      setSubmitError('Something went wrong creating your client. Please try again.')
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   return (
     <div className="p-8">
-      <PageHeader title="Clients" subtitle={`${clients.length} client${clients.length === 1 ? '' : 's'}`} />
+      <PageHeader
+        title="Clients"
+        subtitle={`${clients.length} client${clients.length === 1 ? '' : 's'}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Search"
+              className="bg-surface-hover"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Notifications"
+              className="bg-surface-hover"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            {canWrite && (
+              <Button type="button" onClick={() => setIsCreateOpen(true)}>
+                New client
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       <div className="relative mb-4 w-56">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
@@ -260,59 +261,12 @@ function ClientsPage() {
         </CardContent>
       </Card>
 
-      {canWrite && (
-        <Card className="mt-6 max-w-sm">
-          <CardHeader>
-            <CardTitle className="text-heading">Add client</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="flex flex-col gap-3" onSubmit={handleSubmit} noValidate>
-              {submitError && (
-                <p className="rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{submitError}</p>
-              )}
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="clientName">Name</Label>
-                <Input
-                  id="clientName"
-                  name="name"
-                  type="text"
-                  value={values.name}
-                  onChange={handleChange}
-                  aria-invalid={Boolean(errors.name)}
-                />
-                {errors.name && <p className="text-xs text-danger">{errors.name}</p>}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="clientEmail">Email</Label>
-                <Input
-                  id="clientEmail"
-                  name="email"
-                  type="email"
-                  value={values.email}
-                  onChange={handleChange}
-                  aria-invalid={Boolean(errors.email)}
-                />
-                {errors.email && <p className="text-xs text-danger">{errors.email}</p>}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="clientPhone">Phone</Label>
-                <Input id="clientPhone" name="phone" type="text" value={values.phone} onChange={handleChange} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="clientCompany">Company</Label>
-                <Input id="clientCompany" name="company" type="text" value={values.company} onChange={handleChange} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="clientWebsite">Website</Label>
-                <Input id="clientWebsite" name="website" type="text" value={values.website} onChange={handleChange} />
-              </div>
-              <Button type="submit" variant="outline" className="self-start" disabled={isCreating}>
-                {isCreating ? 'Creating...' : 'Add client'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      <ClientCreateModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        createClient={createClient}
+        members={members}
+      />
     </div>
   )
 }

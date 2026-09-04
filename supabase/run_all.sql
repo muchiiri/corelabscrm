@@ -365,6 +365,16 @@ create policy "Editors can create clients in their workspace"
     )
   );
 
+-- Feature 36d: client creation modal - industry/owner/relationship/notes
+-- fields. owner_id references auth.users, matching tasks.assignee_id and
+-- projects.owner_id's existing convention (not profiles). No RLS changes
+-- needed - the insert/select policies above are row-level, not
+-- column-scoped, so they already cover these columns.
+alter table clients add column if not exists industry text;
+alter table clients add column if not exists owner_id uuid references auth.users(id) on delete set null;
+alter table clients add column if not exists relationship text not null default 'Prospect' check (relationship in ('Active', 'Prospect', 'Churned'));
+alter table clients add column if not exists notes text;
+
 -- ============================================================
 -- projects.sql
 -- ============================================================

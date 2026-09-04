@@ -22,7 +22,7 @@ export function useWorkspaceClients(workspaceId) {
 
       const { data, error } = await supabase
         .from('clients')
-        .select('id, name, email, phone, company, website')
+        .select('id, name, email, phone, company, website, industry, owner_id, relationship, notes')
         .eq('workspace_id', workspaceId)
         .order('name', { ascending: true })
 
@@ -55,8 +55,16 @@ export function useWorkspaceClients(workspaceId) {
         phone: values.phone.trim() || null,
         company: values.company.trim() || null,
         website: values.website.trim() || null,
+        // Optional-chained (unlike the fields above) because the embedded
+        // form calling this doesn't have these keys until feature 36d's
+        // Step 3 replaces it with the modal - plain .trim() would throw
+        // on undefined for a key that's simply absent.
+        industry: values.industry?.trim() || null,
+        owner_id: values.ownerId || null,
+        relationship: values.relationship || 'Prospect',
+        notes: values.notes?.trim() || null,
       })
-      .select('id, name, email, phone, company, website')
+      .select('id, name, email, phone, company, website, industry, owner_id, relationship, notes')
       .single()
 
     if (error) {
