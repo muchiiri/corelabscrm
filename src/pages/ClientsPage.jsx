@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bell, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
 import ClientCreateModal from '@/components/clients/ClientCreateModal'
@@ -15,6 +15,9 @@ import { computeCompletionRate } from '@/lib/computeCompletionRate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { supabase } from '@/lib/supabase'
 
+const STATUS_TABS = ['All', 'Active', 'Prospect', 'Churned']
+const CLIENTS_PER_PAGE = 10
+
 function ClientsPage() {
   const { currentWorkspace } = useWorkspace()
   const { clients, createClient } = useWorkspaceClients(currentWorkspace.id)
@@ -23,8 +26,14 @@ function ClientsPage() {
   const canWrite = myRole !== 'Viewer'
 
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [currentPage, setCurrentPage] = useState(1)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [projectCountByClientId, setProjectCountByClientId] = useState({})
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [currentWorkspace.id])
 
   useEffect(() => {
     let cancelled = false
@@ -141,8 +150,10 @@ function ClientsPage() {
     }
   }, [currentWorkspace.id, clients])
 
+  const membersById = new Map(members.map((member) => [member.id, member]))
+
   const searchLower = search.trim().toLowerCase()
-  const filteredClients = searchLower
+  const searchedClients = searchLower
     ? clients.filter(
         (client) =>
           client.name.toLowerCase().includes(searchLower) ||
@@ -150,11 +161,31 @@ function ClientsPage() {
       )
     : clients
 
+  // Computed from searchedClients, not the tab-filtered result, so a
+  // tab's count reflects the current search but never shifts just
+  // because a different tab is selected - same rule 34g used for
+  // Projects' tabs, extended to compose with this page's search box.
+  function countByRelationship(tab) {
+    return tab === 'All'
+      ? searchedClients.length
+      : searchedClients.filter((client) => client.relationship === tab).length
+  }
+
+  const filteredClients =
+    statusFilter === 'All'
+      ? searchedClients
+      : searchedClients.filter((client) => client.relationship === statusFilter)
+
+  const totalPages = Math.max(1, Math.ceil(filteredClients.length / CLIENTS_PER_PAGE))
+  const safePage = Math.min(currentPage, totalPages)
+  const pageStart = (safePage - 1) * CLIENTS_PER_PAGE
+  const paginatedClients = filteredClients.slice(pageStart, pageStart + CLIENTS_PER_PAGE)
+
   return (
     <div className="p-8">
       <PageHeader
         title="Clients"
-        subtitle={`${clients.length} client${clients.length === 1 ? '' : 's'}`}
+        subtitle={`${clients.length} client${clients.length === 1 ? '' : 's'}, ${clients.filter((client) => client.relationship === 'Active').length} active`}
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -193,9 +224,29 @@ function ClientsPage() {
           placeholder="Search clients"
           aria-label="Search clients"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            setCurrentPage(1)
+          }}
           className="pl-8"
         />
+      </div>
+
+      <div className="mb-4 flex gap-2">
+        {STATUS_TABS.map((tab) => (
+          <Button
+            key={tab}
+            type="button"
+            variant={statusFilter === tab ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setStatusFilter(tab)
+              setCurrentPage(1)
+            }}
+          >
+            {tab} ({countByRelationship(tab)})
+          </Button>
+        ))}
       </div>
 
       <Card>
@@ -205,23 +256,29 @@ function ClientsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredClients.length === 0 ? (
-            <p className="text-muted">{clients.length === 0 ? 'No clients yet.' : 'No clients match your search.'}</p>
+          {clients.length === 0 ? (
+            <p className="text-muted">No clients yet.</p>
+          ) : filteredClients.length === 0 ? (
+            <p className="text-muted">
+              {statusFilter === 'All' ? 'No clients match your search.' : `No ${statusFilter} clients.`}
+            </p>
           ) : (
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted">
                   <th className="py-2 pr-4 font-normal">Client</th>
+                  <th className="py-2 pr-4 font-normal">Owner</th>
                   <th className="py-2 pr-4 text-right font-normal">Projects</th>
                   <th className="py-2 pr-4 font-normal">Open tasks</th>
                   <th className="py-2 pr-4 text-right font-normal">Last contact</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.map((client) => {
+                {paginatedClients.map((client) => {
                   const completionRate = computeCompletionRate(tasksByClientId[client.id] || [])
                   const openCount = completionRate.total - completionRate.completed
                   const lastContact = lastContactByClientId[client.id]
+                  const owner = client.owner_id ? membersById.get(client.owner_id) : null
                   return (
                     <tr key={client.id} className="border-b border-border hover:bg-surface-hover">
                       <td className="py-2.5 pr-4">
@@ -234,6 +291,16 @@ function ClientsPage() {
                             )}
                           </span>
                         </Link>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {owner ? (
+                          <span className="flex items-center gap-2 text-text">
+                            <Avatar name={owner.name} email={owner.email} />
+                            {owner.name || owner.email}
+                          </span>
+                        ) : (
+                          <span className="text-muted">No owner</span>
+                        )}
                       </td>
                       <td className="py-2.5 pr-4 text-right text-text">
                         {projectCountByClientId[client.id] || 0}
@@ -259,6 +326,34 @@ function ClientsPage() {
             </table>
           )}
         </CardContent>
+        {filteredClients.length > 0 && (
+          <CardFooter className="flex items-center justify-between">
+            <p className="text-xs text-faint">
+              Showing {pageStart + 1}-{Math.min(pageStart + CLIENTS_PER_PAGE, filteredClients.length)} of{' '}
+              {filteredClients.length} clients
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage(safePage - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage(safePage + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </CardFooter>
+        )}
       </Card>
 
       <ClientCreateModal
