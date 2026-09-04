@@ -51,6 +51,7 @@ function ProjectsPage() {
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [viewMode, setViewMode] = useState('grid')
   const [tasks, setTasks] = useState([])
 
   useEffect(() => {
@@ -83,18 +84,29 @@ function ProjectsPage() {
   const clientsById = new Map(clients.map((client) => [client.id, client]))
   const membersById = new Map(members.map((member) => [member.id, member]))
 
+  // Computed once and shared by the Grid view, the List view, and
+  // buildReportRows below - previously each recomputed this independently.
+  const projectsWithDerived = projects.map((project) => {
+    const projectTasks = tasksByProjectId.get(project.id) || []
+    const completionRate = computeCompletionRate(projectTasks)
+    const client = project.client_id ? clientsById.get(project.client_id) : null
+    const contributors = [...new Set(projectTasks.map((task) => task.assignee_id).filter(Boolean))]
+      .map((id) => membersById.get(id))
+      .filter(Boolean)
+    const nextDue = projectTasks
+      .filter((task) => task.due_at && task.status !== 'Done')
+      .sort((a, b) => new Date(a.due_at) - new Date(b.due_at))[0]
+    return { ...project, completionRate, client, contributors, nextDue }
+  })
+
   function buildReportRows() {
-    return projects.map((project) => {
-      const completionRate = computeCompletionRate(tasksByProjectId.get(project.id) || [])
-      const client = project.client_id ? clientsById.get(project.client_id) : null
-      return [
-        project.name,
-        client ? client.name : 'No client',
-        completionRate.rate,
-        completionRate.completed,
-        completionRate.total,
-      ]
-    })
+    return projectsWithDerived.map((project) => [
+      project.name,
+      project.client ? project.client.name : 'No client',
+      project.completionRate.rate,
+      project.completionRate.completed,
+      project.completionRate.total,
+    ])
   }
 
   async function logReport(format) {
@@ -157,6 +169,22 @@ function ProjectsPage() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-heading font-semibold text-text">Projects</h1>
         <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={viewMode === 'grid' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            Grid
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === 'list' ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            List
+          </Button>
           <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
             Export CSV
           </Button>
@@ -168,18 +196,10 @@ function ProjectsPage() {
 
       {projects.length === 0 ? (
         <p className="text-muted">No projects yet.</p>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-          {projects.map((project) => {
-            const projectTasks = tasksByProjectId.get(project.id) || []
-            const completionRate = computeCompletionRate(projectTasks)
-            const client = project.client_id ? clientsById.get(project.client_id) : null
-            const contributors = [...new Set(projectTasks.map((task) => task.assignee_id).filter(Boolean))]
-              .map((id) => membersById.get(id))
-              .filter(Boolean)
-            const nextDue = projectTasks
-              .filter((task) => task.due_at && task.status !== 'Done')
-              .sort((a, b) => new Date(a.due_at) - new Date(b.due_at))[0]
+          {projectsWithDerived.map((project) => {
+            const { completionRate, client, contributors, nextDue } = project
 
             return (
               <Card
@@ -240,6 +260,83 @@ function ProjectsPage() {
             )
           })}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted">
+                  <th className="px-4 py-2 font-normal">Name</th>
+                  <th className="px-4 py-2 font-normal">Client</th>
+                  <th className="px-4 py-2 font-normal">Status</th>
+                  <th className="px-4 py-2 font-normal">Progress</th>
+                  <th className="px-4 py-2 font-normal">Contributors</th>
+                  <th className="px-4 py-2 font-normal">Due date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectsWithDerived.map((project) => {
+                  const { completionRate, client, contributors, nextDue } = project
+
+                  return (
+                    <tr key={project.id} className="border-b border-border last:border-b-0">
+                      <td className="px-4 py-2.5">
+                        <Link
+                          to={`/projects/${project.id}`}
+                          className="font-medium text-text hover:underline"
+                        >
+                          {project.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-2.5 text-muted">{client ? client.name : 'No client'}</td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={cn(
+                            'text-xs font-medium',
+                            PROJECT_STATUS_TEXT_CLASS[project.status],
+                          )}
+                        >
+                          {project.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-hover">
+                            <div
+                              className="h-full rounded-full bg-accent"
+                              style={{ width: `${completionRate.rate}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted">{completionRate.rate}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex -space-x-2">
+                          {contributors.slice(0, 3).map((member) => (
+                            <Avatar
+                              key={member.id}
+                              name={member.name}
+                              email={member.email}
+                              className="h-6 w-6 border-2 border-surface"
+                            />
+                          ))}
+                          {contributors.length > 3 && (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-surface-hover text-[10px] font-medium text-muted">
+                              +{contributors.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-muted">
+                        {nextDue ? new Date(nextDue.due_at).toLocaleDateString() : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
       )}
 
       {canWrite && (
