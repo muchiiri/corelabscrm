@@ -425,6 +425,16 @@ create policy "Editors can update their workspace's projects"
     )
   );
 
+-- Feature 36c: project creation modal - owner/schedule/label fields.
+-- owner_id references auth.users, matching tasks.assignee_id's existing
+-- convention (not profiles) for the same kind of "assigned member" field.
+-- No RLS changes needed - the insert/update policies above are row-level,
+-- not column-scoped, so they already cover these columns.
+alter table projects add column if not exists owner_id uuid references auth.users(id) on delete set null;
+alter table projects add column if not exists start_date date;
+alter table projects add column if not exists target_date date;
+alter table projects add column if not exists label_color text not null default 'gray' check (label_color in ('gray', 'red', 'orange', 'green', 'blue', 'purple'));
+
 -- ============================================================
 -- tasks.sql
 -- ============================================================

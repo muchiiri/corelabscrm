@@ -2,14 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
-import { validateProjectName } from '@/lib/validateProjectName'
+import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
@@ -23,7 +19,6 @@ import { downloadTextFile } from '@/lib/downloadTextFile'
 import { buildReportPdf } from '@/lib/buildReportPdf'
 import { cn } from '@/lib/utils'
 
-const INITIAL_VALUES = { name: '', clientId: '', description: '' }
 const REPORT_HEADERS = ['Project', 'Client', 'Completion %', 'Completed', 'Total']
 
 // Local to this page - same reasoning as TaskListPage's STATUS_PILL_CLASS
@@ -51,13 +46,10 @@ function ProjectsPage() {
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
 
-  const [values, setValues] = useState(INITIAL_VALUES)
-  const [errors, setErrors] = useState({})
-  const [submitError, setSubmitError] = useState(null)
-  const [isCreating, setIsCreating] = useState(false)
   const [viewMode, setViewMode] = useState('grid')
   const [statusFilter, setStatusFilter] = useState('All')
   const [tasks, setTasks] = useState([])
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -151,33 +143,6 @@ function ProjectsPage() {
     logReport('pdf')
   }
 
-  function handleChange(event) {
-    const { name, value } = event.target
-    setValues((prev) => ({ ...prev, [name]: value }))
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    const validationErrors = validateProjectName({ name: values.name })
-    setErrors(validationErrors)
-    if (Object.keys(validationErrors).length > 0) {
-      return
-    }
-
-    setSubmitError(null)
-    setIsCreating(true)
-
-    try {
-      await createProject(values.name, values.clientId, values.description)
-      setValues(INITIAL_VALUES)
-    } catch (createError) {
-      console.error('Failed to create project:', createError)
-      setSubmitError('Something went wrong creating your project. Please try again.')
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   return (
     <div className="p-8">
       <PageHeader
@@ -206,14 +171,7 @@ function ProjectsPage() {
               <Bell className="h-4 w-4" />
             </Button>
             {canWrite && (
-              <Button
-                type="button"
-                onClick={() =>
-                  document
-                    .getElementById('new-project-form')
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }
-              >
+              <Button type="button" onClick={() => setIsCreateOpen(true)}>
                 New project
               </Button>
             )}
@@ -407,55 +365,13 @@ function ProjectsPage() {
         </Card>
       )}
 
-      {canWrite && (
-        <Card id="new-project-form" className="mt-6 max-w-sm">
-          <CardHeader>
-            <CardTitle className="text-heading">New project</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="flex flex-col gap-3" onSubmit={handleSubmit} noValidate>
-              {submitError && (
-                <p className="rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{submitError}</p>
-              )}
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="projectName">Name</Label>
-                <Input
-                  id="projectName"
-                  name="name"
-                  type="text"
-                  value={values.name}
-                  onChange={handleChange}
-                  aria-invalid={Boolean(errors.name)}
-                />
-                {errors.name && <p className="text-xs text-danger">{errors.name}</p>}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="projectClientId">Client</Label>
-                <Select id="projectClientId" name="clientId" value={values.clientId} onChange={handleChange}>
-                  <option value="">No client</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="projectDescription">Description</Label>
-                <Textarea
-                  id="projectDescription"
-                  name="description"
-                  value={values.description}
-                  onChange={handleChange}
-                />
-              </div>
-              <Button type="submit" variant="outline" className="self-start" disabled={isCreating}>
-                {isCreating ? 'Creating...' : 'Add project'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      <ProjectCreateModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        createProject={createProject}
+        clients={clients}
+        members={members}
+      />
     </div>
   )
 }

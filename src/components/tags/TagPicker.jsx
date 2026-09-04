@@ -109,3 +109,4 @@ function TagPicker({ tags, selectedTagIds, onChange, onCreateTag, readOnly = fal
 }
 
 export default TagPicker
+export { TAG_COLORS, SWATCH_CLASS }
