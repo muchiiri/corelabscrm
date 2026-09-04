@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const PRIORITY_DOT_CLASS = {
@@ -6,10 +7,23 @@ const PRIORITY_DOT_CLASS = {
   Low: 'bg-priority-low',
 }
 
+const PRIORITY_TEXT_CLASS = {
+  High: 'text-priority-high',
+  Medium: 'text-priority-medium',
+  Low: 'text-priority-low',
+}
+
+const PRIORITY_ICON = {
+  High: ArrowUp,
+  Medium: Minus,
+  Low: ArrowDown,
+}
+
 function PriorityBadge({ priority }) {
+  const Icon = PRIORITY_ICON[priority]
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-      <span className={cn('h-2 w-2 shrink-0 rounded-full', PRIORITY_DOT_CLASS[priority])} />
+    <span className={cn('inline-flex items-center gap-1.5 text-sm', PRIORITY_TEXT_CLASS[priority])}>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
       {priority}
     </span>
   )

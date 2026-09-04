@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Bell, Circle, CircleCheck, CircleDot, CircleSlash, Clock, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
 import TaskSnoozeControl from '@/components/tasks/TaskSnoozeControl'
@@ -23,6 +23,7 @@ import { supabase } from '@/lib/supabase'
 import { filterTasks } from '@/lib/filterTasks'
 import { getDatePresetRange } from '@/lib/getDatePresetRange'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
+import { isTaskDueThisWeek } from '@/lib/isTaskDueThisWeek'
 import { cn } from '@/lib/utils'
 
 const INITIAL_FILTERS = {
@@ -36,6 +37,8 @@ const INITIAL_FILTERS = {
 
 const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'Future']
 
+const TASKS_PER_PAGE = 10
+
 // Local to this page, not the shared StatusBadge component - see
 // current-feature.md's Design reference for why. Literal class strings,
 // not `bg-status-${status}/15` interpolation, so Tailwind's build-time
@@ -46,6 +49,14 @@ const STATUS_PILL_CLASS = {
   Blocked: 'bg-status-blocked/15 text-status-blocked',
   Waiting: 'bg-status-waiting/15 text-status-waiting',
   Done: 'bg-status-done/15 text-status-done',
+}
+
+const STATUS_ICON = {
+  Todo: Circle,
+  'In Progress': CircleDot,
+  Blocked: CircleSlash,
+  Waiting: Clock,
+  Done: CircleCheck,
 }
 
 function TaskListPage() {
@@ -62,8 +73,8 @@ function TaskListPage() {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [snoozeError, setSnoozeError] = useState(null)
-  const [completeError, setCompleteError] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [currentPage, setCurrentPage] = useState(1)
   const [isBulkActionPending, setIsBulkActionPending] = useState(false)
   const [bulkActionError, setBulkActionError] = useState(null)
 
@@ -73,6 +84,7 @@ function TaskListPage() {
     // selection, ids from the previous workspace would linger, stale and
     // unmatched by any row in the new list.
     setSelectedIds(new Set())
+    setCurrentPage(1)
 
     async function load() {
       const { data, error } = await supabase
@@ -150,6 +162,7 @@ function TaskListPage() {
   function handleFilterChange(event) {
     const { name, value } = event.target
     setSelectedIds(new Set())
+    setCurrentPage(1)
     setFilters((prev) => ({
       ...prev,
       [name]: value,
@@ -162,11 +175,13 @@ function TaskListPage() {
   function handleDatePreset(preset) {
     const { dueFrom, dueTo } = getDatePresetRange(preset)
     setSelectedIds(new Set())
+    setCurrentPage(1)
     setFilters((prev) => ({ ...prev, dueFrom, dueTo: dueTo ?? '', overdueOnly: false }))
   }
 
   function handleOverduePreset() {
     setSelectedIds(new Set())
+    setCurrentPage(1)
     setFilters((prev) => ({ ...prev, dueFrom: '', dueTo: '', overdueOnly: true }))
   }
 
@@ -188,32 +203,6 @@ function TaskListPage() {
       console.error('Failed to update snooze:', error)
       setTasks(previousTasks)
       setSnoozeError('Something went wrong updating that task. Please try again.')
-    }
-  }
-
-  async function handleComplete(taskId, isChecked) {
-    setCompleteError(null)
-    const previousTasks = tasks
-    const newStatus = isChecked ? 'Done' : 'Todo'
-    const task = tasks.find((t) => t.id === taskId)
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)))
-
-    // .select().single() turns a Viewer's RLS-filtered write into a real
-    // error (PGRST116) instead of a silent zero-row success, so a denied
-    // write actually reaches the rollback/error-banner path below.
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: newStatus })
-      .eq('id', taskId)
-      .select()
-      .single()
-    if (error) {
-      console.error('Failed to update task status:', error)
-      setTasks(previousTasks)
-      setCompleteError('Something went wrong updating that task. Please try again.')
-    } else if (task) {
-      const actorName = members.find((member) => member.id === user.id)?.name || user.email
-      logActivity(currentWorkspace.id, user.id, `${actorName} moved "${task.title}" to ${newStatus}`, 'task', taskId)
     }
   }
 
@@ -310,26 +299,52 @@ function TaskListPage() {
   const projectsById = new Map(projects.map((project) => [project.id, project]))
   const clientsById = new Map(clients.map((client) => [client.id, client]))
   const overdueCount = tasks.filter((task) => isTaskOverdue(task)).length
+  const dueThisWeekCount = tasks.filter((task) => isTaskDueThisWeek(task)).length
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE))
+  // Guards against a bulk delete shrinking the list out from under an
+  // already-advanced page, without needing a dedicated effect.
+  const safePage = Math.min(currentPage, totalPages)
+  const pageStart = (safePage - 1) * TASKS_PER_PAGE
+  const paginatedTasks = filteredTasks.slice(pageStart, pageStart + TASKS_PER_PAGE)
 
   return (
     <div className="p-8">
       <PageHeader
         title="Tasks"
-        subtitle={`${tasks.length} task${tasks.length === 1 ? '' : 's'}, ${overdueCount} overdue`}
+        subtitle={`${tasks.length} task${tasks.length === 1 ? '' : 's'}, ${overdueCount} overdue, ${dueThisWeekCount} due this week`}
         actions={
-          canWrite && (
-            <Button asChild>
-              <Link to="/tasks/new">New task</Link>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Search"
+              className="bg-surface-hover"
+            >
+              <Search className="h-4 w-4" />
             </Button>
-          )
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Notifications"
+              className="bg-surface-hover"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            {canWrite && (
+              <Button asChild>
+                <Link to="/tasks/new">New task</Link>
+              </Button>
+            )}
+          </div>
         }
       />
 
       {snoozeError && (
         <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{snoozeError}</p>
-      )}
-      {completeError && (
-        <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{completeError}</p>
       )}
       {bulkActionError && (
         <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{bulkActionError}</p>
@@ -352,7 +367,7 @@ function TaskListPage() {
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <div className="relative w-56">
+            <div className="relative min-w-56 flex-1">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
               <Input
                 name="search"
@@ -471,21 +486,25 @@ function TaskListPage() {
                     {canWrite && (
                       <Checkbox
                         checked={
-                          filteredTasks.length > 0 &&
-                          filteredTasks.every((task) => selectedIds.has(task.id))
+                          paginatedTasks.length > 0 &&
+                          paginatedTasks.every((task) => selectedIds.has(task.id))
                         }
                         onChange={(event) => {
-                          setSelectedIds(
-                            event.target.checked
-                              ? new Set(filteredTasks.map((task) => task.id))
-                              : new Set(),
-                          )
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev)
+                            for (const task of paginatedTasks) {
+                              if (event.target.checked) {
+                                next.add(task.id)
+                              } else {
+                                next.delete(task.id)
+                              }
+                            }
+                            return next
+                          })
                         }}
                       />
                     )}
                   </th>
-                  <th className="py-2 pr-4 font-normal">Done</th>
-                  <th className="py-2 pr-4 font-normal">ID</th>
                   <th className="py-2 pr-4 font-normal">Task</th>
                   <th className="py-2 pr-4 font-normal">Priority</th>
                   <th className="py-2 pr-4 font-normal">Status</th>
@@ -495,15 +514,16 @@ function TaskListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks.map((task) => {
+                {paginatedTasks.map((task) => {
                   const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
                   const project = task.project_id ? projectsById.get(task.project_id) : null
                   const client = task.client_id ? clientsById.get(task.client_id) : null
+                  const StatusIcon = STATUS_ICON[task.status]
                   return (
                     <tr
                       key={task.id}
                       onClick={() => navigate(`/tasks/${task.id}/edit`)}
-                      className="cursor-pointer border-b border-border hover:bg-border"
+                      className="cursor-pointer border-b border-border hover:bg-surface-hover"
                     >
                       <td className="py-2.5 pr-4">
                         {canWrite && (
@@ -517,32 +537,17 @@ function TaskListPage() {
                           />
                         )}
                       </td>
-                      <td className="py-2.5 pr-4">
-                        {canWrite && (
-                          <Checkbox
-                            checked={task.status === 'Done'}
-                            onChange={(event) => {
-                              event.stopPropagation()
-                              handleComplete(task.id, event.target.checked)
-                            }}
-                            onClick={(event) => event.stopPropagation()}
-                          />
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4 text-faint">{task.id.slice(0, 8)}</td>
-                      <td className="max-w-xs py-2.5 pr-4">
-                        <p className="truncate text-text">{task.title}</p>
+                      <td className="max-w-md py-2.5 pr-4">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="min-w-0 flex-1 truncate text-text">{task.title}</p>
+                          {(tagsByTaskId[task.id] ?? []).map((tag) => (
+                            <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+                          ))}
+                        </div>
                         <p className="truncate text-xs text-muted">
                           {project ? project.name : 'No project'}
                           {client ? ` · ${client.name}` : ''}
                         </p>
-                        {(tagsByTaskId[task.id] ?? []).length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {tagsByTaskId[task.id].map((tag) => (
-                              <TagBadge key={tag.id} name={tag.name} color={tag.color} />
-                            ))}
-                          </div>
-                        )}
                       </td>
                       <td className="py-2.5 pr-4">
                         <PriorityBadge priority={task.priority} />
@@ -550,10 +555,11 @@ function TaskListPage() {
                       <td className="py-2.5 pr-4">
                         <span
                           className={cn(
-                            'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
                             STATUS_PILL_CLASS[task.status],
                           )}
                         >
+                          <StatusIcon className="h-3.5 w-3.5 shrink-0" />
                           {task.status}
                         </span>
                       </td>
@@ -584,6 +590,34 @@ function TaskListPage() {
                 </table>
               )}
             </CardContent>
+            {filteredTasks.length > 0 && (
+              <CardFooter className="flex items-center justify-between">
+                <p className="text-xs text-faint">
+                  Showing {pageStart + 1}-{Math.min(pageStart + TASKS_PER_PAGE, filteredTasks.length)} of{' '}
+                  {filteredTasks.length} tasks
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage <= 1}
+                    onClick={() => setCurrentPage(safePage - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setCurrentPage(safePage + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </CardFooter>
+            )}
           </Card>
         </>
       )}
