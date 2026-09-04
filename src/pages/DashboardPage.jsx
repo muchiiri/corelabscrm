@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { Bell, Plus, Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
 import CompletionTrendChart from '@/components/dashboard/CompletionTrendChart'
@@ -88,12 +90,24 @@ function DashboardPage() {
   ]
 
   const SECONDARY_CARD_DEFS = [
-    { key: 'completedThisWeek', label: 'Completed this week' },
-    { key: 'overdue', label: 'Overdue' },
+    {
+      key: 'completedThisWeek',
+      label: 'Completed this week',
+      borderClass: 'border-l-4 border-l-success',
+      numberClass: 'text-success',
+    },
+    {
+      key: 'overdue',
+      label: 'Overdue',
+      borderClass: 'border-l-4 border-l-danger',
+      numberClass: 'text-danger',
+    },
     {
       key: 'inProgress',
       label: 'In progress',
       caption: `across ${projectStats.ongoing} ongoing project${projectStats.ongoing === 1 ? '' : 's'}`,
+      borderClass: 'border-l-4 border-l-status-in-progress',
+      numberClass: 'text-status-in-progress',
     },
   ]
 
@@ -109,9 +123,39 @@ function DashboardPage() {
       <PageHeader
         title={`${getGreeting()}, ${name}`}
         subtitle={`${todayLabel} · ${metrics.tasksToday} ${taskWord} on your plate`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Search"
+              className="bg-surface-hover"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled
+              aria-label="Notifications"
+              className="bg-surface-hover"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button asChild className="bg-[#1F2937] text-white hover:bg-[#111827] hover:opacity-100">
+              <Link to="/tasks/new">
+                <Plus className="h-4 w-4" />
+                New
+              </Link>
+            </Button>
+          </div>
+        }
       />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="text-sm font-normal text-muted">Tasks today</CardTitle>
@@ -143,13 +187,13 @@ function DashboardPage() {
           </CardContent>
         </Card>
 
-        {SECONDARY_CARD_DEFS.map(({ key, label, caption }) => (
-          <Card key={key}>
+        {SECONDARY_CARD_DEFS.map(({ key, label, caption, borderClass, numberClass }) => (
+          <Card key={key} className={borderClass}>
             <CardHeader>
               <CardTitle className="text-sm font-normal text-muted">{label}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-semibold text-text">{metrics[key]}</p>
+              <p className={cn('text-2xl font-semibold', numberClass)}>{metrics[key]}</p>
               {caption && <p className="mt-1 text-xs text-muted">{caption}</p>}
             </CardContent>
           </Card>
@@ -211,66 +255,68 @@ function DashboardPage() {
         <CompletionTrendChart tasks={tasks} />
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-sm font-normal text-muted">Workload by status</CardTitle>
-          <p className="mt-1 text-xs text-faint">
-            {tasks.length} task{tasks.length === 1 ? '' : 's'} total
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-hover">
-            {statusBreakdown
-              .filter((entry) => entry.percent > 0)
-              .map((entry) => (
-                <div
-                  key={entry.status}
-                  className={STATUS_DOT_CLASS[entry.status]}
-                  style={{ width: `${entry.percent}%` }}
-                  title={`${entry.status} · ${entry.percent}%`}
-                />
-              ))}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
-            {statusBreakdown.map((entry) => (
-              <div key={entry.status} className="flex items-center gap-2 text-xs text-muted">
-                <span className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT_CLASS[entry.status])} />
-                {entry.status} {entry.percent}%
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-sm font-normal text-muted">Upcoming deadlines</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {upcomingDeadlines.length === 0 ? (
-            <p className="text-sm text-muted">Nothing due in the next 7 days.</p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {upcomingDeadlines.map((task) => (
-                <button
-                  key={task.id}
-                  type="button"
-                  onClick={() => navigate(`/tasks/${task.id}/edit`)}
-                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-text hover:bg-surface-hover"
-                >
-                  <span
-                    className={cn('h-2 w-2 shrink-0 rounded-full', PRIORITY_DOT_CLASS[task.priority])}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-normal text-muted">Workload by status</CardTitle>
+            <p className="mt-1 text-xs text-faint">
+              {tasks.length} task{tasks.length === 1 ? '' : 's'} total
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-hover">
+              {statusBreakdown
+                .filter((entry) => entry.percent > 0)
+                .map((entry) => (
+                  <div
+                    key={entry.status}
+                    className={STATUS_DOT_CLASS[entry.status]}
+                    style={{ width: `${entry.percent}%` }}
+                    title={`${entry.status} · ${entry.percent}%`}
                   />
-                  <span className="flex-1 truncate">{task.title}</span>
-                  <span className="shrink-0 text-xs text-muted">
-                    {new Date(task.due_at).toLocaleDateString()}
-                  </span>
-                </button>
+                ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+              {statusBreakdown.map((entry) => (
+                <div key={entry.status} className="flex items-center gap-2 text-xs text-muted">
+                  <span className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT_CLASS[entry.status])} />
+                  {entry.status} {entry.percent}%
+                </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-normal text-muted">Upcoming deadlines</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {upcomingDeadlines.length === 0 ? (
+              <p className="text-sm text-muted">Nothing due in the next 7 days.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {upcomingDeadlines.map((task) => (
+                  <button
+                    key={task.id}
+                    type="button"
+                    onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-text hover:bg-surface-hover"
+                  >
+                    <span
+                      className={cn('h-2 w-2 shrink-0 rounded-full', PRIORITY_DOT_CLASS[task.priority])}
+                    />
+                    <span className="flex-1 truncate">{task.title}</span>
+                    <span className="shrink-0 text-xs text-muted">
+                      {new Date(task.due_at).toLocaleDateString()}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
         {OVERVIEW_CARD_DEFS.map(({ key, label, value }) => (
