@@ -137,7 +137,11 @@ function DashboardPage() {
   return (
     <div className="p-8">
       <PageHeader
-        title={`${getGreeting()}, ${name}`}
+        title={
+          <>
+            {getGreeting()}, <span className="font-bold">{name}</span>
+          </>
+        }
         subtitle={`${todayLabel} · ${metrics.tasksToday} ${taskWord} on your plate`}
         actions={
           <div className="flex items-center gap-2">
