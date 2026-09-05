@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Calendar, FolderKanban, Kanban, LayoutDashboard, ListChecks, Settings, Users } from 'lucide-react'
+import { Calendar, FolderKanban, Kanban, LayoutDashboard, ListChecks, LogOut, Settings, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
 import { useAuth } from '@/lib/AuthContext'
@@ -58,8 +58,15 @@ function Sidebar() {
             <p className="truncate text-xs font-medium text-text">{me?.name || me?.email || user?.email}</p>
             {me?.role && <p className="truncate text-xs text-muted">{me.role}</p>}
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={signOut}>
-            Sign out
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </div>
