@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
 import TagPicker from '@/components/tags/TagPicker'
 import { validateTaskForm } from '@/lib/validateTaskForm'
@@ -19,6 +20,7 @@ import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+import { useTaskSubtasks } from '@/lib/useTaskSubtasks'
 import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
@@ -57,6 +59,7 @@ function TaskEditPage() {
   const { clients } = useWorkspaceClients(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const readOnly = myRole === 'Viewer'
+  const { subtasks, addSubtask, toggleSubtask, deleteSubtask } = useTaskSubtasks(id)
   const [values, setValues] = useState(null)
   const [initialStatus, setInitialStatus] = useState(null)
   const [taskFacts, setTaskFacts] = useState(null)
@@ -68,6 +71,8 @@ function TaskEditPage() {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
+  const [subtaskError, setSubtaskError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -260,6 +265,42 @@ function TaskEditPage() {
     navigate('/tasks')
   }
 
+  async function handleAddSubtask(event) {
+    event.preventDefault()
+    if (!newSubtaskTitle.trim()) {
+      return
+    }
+
+    setSubtaskError(null)
+    try {
+      await addSubtask(newSubtaskTitle)
+      setNewSubtaskTitle('')
+    } catch (error) {
+      console.error('Failed to add subtask:', error)
+      setSubtaskError('Something went wrong adding that subtask. Please try again.')
+    }
+  }
+
+  async function handleToggleSubtask(subtaskId, isDone) {
+    setSubtaskError(null)
+    try {
+      await toggleSubtask(subtaskId, isDone)
+    } catch (error) {
+      console.error('Failed to update subtask:', error)
+      setSubtaskError('Something went wrong updating that subtask. Please try again.')
+    }
+  }
+
+  async function handleDeleteSubtask(subtaskId) {
+    setSubtaskError(null)
+    try {
+      await deleteSubtask(subtaskId)
+    } catch (error) {
+      console.error('Failed to remove subtask:', error)
+      setSubtaskError('Something went wrong removing that subtask. Please try again.')
+    }
+  }
+
   if (loading) {
     return <p className="p-8 text-muted">Loading...</p>
   }
@@ -312,6 +353,73 @@ function TaskEditPage() {
                 onChange={handleChange}
                 disabled={readOnly}
               />
+            </div>
+
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <Label className={CAPTION_CLASS}>Subtasks</Label>
+                {subtasks.length > 0 && (
+                  <span className="text-xs text-muted">
+                    {subtasks.filter((subtask) => subtask.is_done).length} of {subtasks.length} done
+                  </span>
+                )}
+              </div>
+
+              {subtaskError && (
+                <p className="rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{subtaskError}</p>
+              )}
+
+              {subtasks.length === 0 ? (
+                <p className="text-sm text-muted">No subtasks yet.</p>
+              ) : (
+                <ul className="flex flex-col gap-1.5">
+                  {subtasks.map((subtask) => (
+                    <li key={subtask.id} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={subtask.is_done}
+                        onChange={(event) => handleToggleSubtask(subtask.id, event.target.checked)}
+                        disabled={readOnly}
+                      />
+                      <span
+                        className={cn(
+                          'flex-1 text-sm',
+                          subtask.is_done ? 'text-muted line-through' : 'text-text',
+                        )}
+                      >
+                        {subtask.title}
+                      </span>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubtask(subtask.id)}
+                          className="text-xs text-muted hover:text-danger"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {!readOnly && (
+                <div className="mt-1 flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Add a subtask"
+                    value={newSubtaskTitle}
+                    onChange={(event) => setNewSubtaskTitle(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        handleAddSubtask(event)
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={handleAddSubtask}>
+                    Add
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
