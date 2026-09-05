@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
 import ClientCreateModal from '@/components/clients/ClientCreateModal'
+import RelationshipBadge from '@/components/clients/RelationshipBadge'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
@@ -301,7 +302,10 @@ function ClientsPage() {
                         <Link to={`/clients/${client.id}`} className="flex items-center gap-2.5 text-text">
                           <Avatar name={client.name} />
                           <span>
-                            <span className="block font-semibold">{client.name}</span>
+                            <span className="flex items-center gap-2">
+                              <span className="font-semibold">{client.name}</span>
+                              <RelationshipBadge relationship={client.relationship} />
+                            </span>
                             {client.company && (
                               <span className="block text-xs text-muted">{client.company}</span>
                             )}
