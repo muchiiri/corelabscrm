@@ -101,7 +101,7 @@ function ProfileTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="max-w-sm">
+      <Card>
         <CardHeader>
           <CardTitle className="text-heading">Your profile</CardTitle>
           <CardDescription>Visible to everyone in this workspace.</CardDescription>
@@ -157,7 +157,7 @@ function ProfileTab() {
         </CardContent>
       </Card>
 
-      <Card className="max-w-sm">
+      <Card>
         <CardHeader>
           <CardTitle className="text-heading">Appearance</CardTitle>
           <CardDescription>Applies to your account.</CardDescription>

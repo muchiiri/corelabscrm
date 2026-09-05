@@ -132,7 +132,7 @@ function WorkspaceTab() {
 
   return (
     <>
-      <Card className="max-w-sm">
+      <Card>
         <CardHeader>
           <CardTitle className="text-heading">Workspace settings</CardTitle>
           <CardDescription>
@@ -201,7 +201,7 @@ function WorkspaceTab() {
         </CardContent>
       </Card>
 
-      <Card className="mt-6 max-w-sm border-danger">
+      <Card className="mt-6 border-danger">
         <CardHeader>
           <CardTitle className="text-heading text-danger">Delete this workspace</CardTitle>
           <CardDescription>

@@ -96,7 +96,7 @@ function NotificationsTab() {
   }
 
   return (
-    <Card className="max-w-sm">
+    <Card>
       <CardHeader>
         <CardTitle className="text-heading">Notifications</CardTitle>
         <CardDescription>Choose what reaches your inbox and what stays in the app.</CardDescription>

@@ -38,7 +38,7 @@ function BillingTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="max-w-sm">
+      <Card>
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -75,7 +75,7 @@ function BillingTab() {
         </CardContent>
       </Card>
 
-      <Card className="max-w-sm">
+      <Card>
         <CardHeader>
           <CardTitle className="text-heading">Invoices</CardTitle>
         </CardHeader>

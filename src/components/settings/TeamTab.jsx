@@ -97,7 +97,7 @@ function TeamTab() {
   }
 
   return (
-    <Card className="max-w-sm">
+    <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div>
