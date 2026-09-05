@@ -6,6 +6,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import WorkspaceTab from '@/components/settings/WorkspaceTab'
 import TeamTab from '@/components/settings/TeamTab'
 import BillingTab from '@/components/settings/BillingTab'
+import ProfileTab from '@/components/settings/ProfileTab'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
@@ -103,7 +104,7 @@ function WorkspaceSettingsPage() {
         </nav>
 
         <div className="md:col-span-3">
-          {activeTab === 'profile' && <ComingSoonTab title="Profile" />}
+          {activeTab === 'profile' && <ProfileTab />}
           {activeTab === 'notifications' && <ComingSoonTab title="Notifications" />}
           {activeTab === 'team' && <TeamTab />}
           {activeTab === 'billing' && <BillingTab />}
