@@ -91,7 +91,15 @@ export function useWorkspaceProjects(workspaceId) {
     }
 
     setProjects((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
-    logActivity(workspaceId, user.id, `${user.email} created project "${data.name}"`, 'project', data.id)
+
+    const { data: actorProfile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+    const actorName = actorProfile?.name || user.email
+    logActivity(workspaceId, user.id, `${actorName} created project "${data.name}"`, 'project', data.id)
+
     return data
   }
 

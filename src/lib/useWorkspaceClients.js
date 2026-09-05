@@ -72,7 +72,15 @@ export function useWorkspaceClients(workspaceId) {
     }
 
     setClients((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
-    logActivity(workspaceId, user.id, `${user.email} added client "${data.name}"`, 'client', data.id)
+
+    const { data: actorProfile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+    const actorName = actorProfile?.name || user.email
+    logActivity(workspaceId, user.id, `${actorName} added client "${data.name}"`, 'client', data.id)
+
     return data
   }
 
