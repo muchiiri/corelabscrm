@@ -48,3 +48,18 @@ alter table clients add column if not exists industry text;
 alter table clients add column if not exists owner_id uuid references auth.users(id) on delete set null;
 alter table clients add column if not exists relationship text not null default 'Prospect' check (relationship in ('Active', 'Prospect', 'Churned'));
 alter table clients add column if not exists notes text;
+
+-- Feature 52: enable client editing. Same shape as projects' update policy
+-- (feature 34d) - insert/select above are row-level, not column-scoped, so
+-- no other RLS change is needed to let Editors/Admins edit any client field.
+drop policy if exists "Editors can update their workspace's clients" on clients;
+create policy "Editors can update their workspace's clients"
+  on clients for update
+  using (
+    exists (
+      select 1 from workspace_members
+      where workspace_members.workspace_id = clients.workspace_id
+      and workspace_members.user_id = auth.uid()
+      and workspace_members.role in ('Admin', 'Editor')
+    )
+  );

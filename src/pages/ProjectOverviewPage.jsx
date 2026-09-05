@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
 import TaskCreateModal from '@/components/tasks/TaskCreateModal'
+import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
@@ -41,7 +42,7 @@ function ProjectOverviewPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { clients } = useWorkspaceClients(currentWorkspace.id)
-  const { projects } = useWorkspaceProjects(currentWorkspace.id)
+  const { projects, updateProject } = useWorkspaceProjects(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
@@ -51,6 +52,7 @@ function ProjectOverviewPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -64,7 +66,7 @@ function ProjectOverviewPage() {
 
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('id, name, client_id, status, description, owner_id, target_date, created_at')
+        .select('id, name, client_id, status, description, owner_id, start_date, target_date, label_color, deal_value, deal_currency, created_at')
         .eq('id', id)
         .maybeSingle()
 
@@ -420,9 +422,11 @@ function ProjectOverviewPage() {
           <Button type="button" variant="outline" size="sm" disabled>
             Duplicate
           </Button>
-          <Button type="button" size="sm" disabled>
-            Edit project
-          </Button>
+          {canWrite && (
+            <Button type="button" size="sm" onClick={() => setIsEditOpen(true)}>
+              Edit project
+            </Button>
+          )}
         </div>
       </div>
 
@@ -435,6 +439,30 @@ function ProjectOverviewPage() {
         onCreateTag={createTag}
         projects={projects}
         initialValues={{ projectId: project.id }}
+      />
+
+      <ProjectCreateModal
+        mode="edit"
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        updateProject={async (projectId, values) => {
+          const updated = await updateProject(projectId, values)
+          setProject((prev) => ({ ...prev, ...updated }))
+        }}
+        projectId={project.id}
+        clients={clients}
+        members={members}
+        initialValues={{
+          name: project.name,
+          clientId: project.client_id || '',
+          ownerId: project.owner_id || '',
+          startDate: project.start_date || '',
+          targetDate: project.target_date || '',
+          description: project.description || '',
+          labelColor: project.label_color || 'gray',
+          dealValue: project.deal_value != null ? String(project.deal_value) : '',
+          dealCurrency: project.deal_currency || 'USD',
+        }}
       />
     </div>
   )

@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
 import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
+import ClientCreateModal from '@/components/clients/ClientCreateModal'
 import { validateInteractionNote } from '@/lib/validateInteractionNote'
 import { formatCurrency } from '@/lib/formatCurrency'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
@@ -44,7 +45,7 @@ function ClientDetailPage() {
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
-  const { clients } = useWorkspaceClients(currentWorkspace.id)
+  const { clients, updateClient } = useWorkspaceClients(currentWorkspace.id)
   const { createProject } = useWorkspaceProjects(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
@@ -56,6 +57,7 @@ function ClientDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   const [noteValue, setNoteValue] = useState('')
   const [noteErrors, setNoteErrors] = useState({})
@@ -90,7 +92,7 @@ function ClientDetailPage() {
     async function load() {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, name, email, phone, company, website, industry, owner_id, relationship, created_at')
+        .select('id, name, email, phone, company, website, industry, owner_id, relationship, notes, created_at')
         .eq('id', id)
         .maybeSingle()
 
@@ -468,9 +470,11 @@ function ClientDetailPage() {
           <Button type="button" variant="outline" size="sm" disabled>
             Duplicate
           </Button>
-          <Button type="button" size="sm" disabled>
-            Edit client
-          </Button>
+          {canWrite && (
+            <Button type="button" size="sm" onClick={() => setIsEditOpen(true)}>
+              Edit client
+            </Button>
+          )}
         </div>
       </div>
 
@@ -481,6 +485,29 @@ function ClientDetailPage() {
         clients={clients}
         members={members}
         initialValues={{ clientId: client.id }}
+      />
+
+      <ClientCreateModal
+        mode="edit"
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        updateClient={async (clientId, values) => {
+          const updated = await updateClient(clientId, values)
+          setClient((prev) => ({ ...prev, ...updated }))
+        }}
+        clientId={client.id}
+        members={members}
+        initialValues={{
+          name: client.name,
+          company: client.company || '',
+          email: client.email || '',
+          phone: client.phone || '',
+          website: client.website || '',
+          industry: client.industry || '',
+          ownerId: client.owner_id || '',
+          relationship: client.relationship || 'Prospect',
+          notes: client.notes || '',
+        }}
       />
     </div>
   )

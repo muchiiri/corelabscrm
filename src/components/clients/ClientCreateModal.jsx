@@ -37,15 +37,32 @@ const RELATIONSHIP_DOT_CLASS = {
   Churned: 'bg-danger',
 }
 
-function ClientCreateModal({ open, onOpenChange, createClient, members }) {
-  const [values, setValues] = useState(INITIAL_VALUES)
+function ClientCreateModal({
+  open,
+  onOpenChange,
+  createClient,
+  updateClient,
+  clientId,
+  mode = 'create',
+  members,
+  initialValues = {},
+}) {
+  const [values, setValues] = useState({ ...INITIAL_VALUES, ...initialValues })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const isEdit = mode === 'edit'
 
   function handleChange(event) {
     const { name, value } = event.target
     setValues((prev) => ({ ...prev, [name]: value }))
+  }
+
+  function handleCancel() {
+    setValues({ ...INITIAL_VALUES, ...initialValues })
+    setErrors({})
+    setSubmitError(null)
+    onOpenChange(false)
   }
 
   async function handleSubmit(event) {
@@ -60,12 +77,16 @@ function ClientCreateModal({ open, onOpenChange, createClient, members }) {
     setIsSubmitting(true)
 
     try {
-      await createClient(values)
-      setValues(INITIAL_VALUES)
+      if (isEdit) {
+        await updateClient(clientId, values)
+      } else {
+        await createClient(values)
+        setValues(INITIAL_VALUES)
+      }
       onOpenChange(false)
-    } catch (createError) {
-      console.error('Failed to create client:', createError)
-      setSubmitError('Something went wrong creating your client. Please try again.')
+    } catch (submitErr) {
+      console.error(`Failed to ${isEdit ? 'update' : 'create'} client:`, submitErr)
+      setSubmitError(`Something went wrong ${isEdit ? 'saving' : 'creating'} your client. Please try again.`)
     } finally {
       setIsSubmitting(false)
     }
@@ -82,9 +103,13 @@ function ClientCreateModal({ open, onOpenChange, createClient, members }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader className="border-b border-border pb-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-accent">New client</p>
-          <DialogTitle>Create a client</DialogTitle>
-          <DialogDescription>Keep contact and relationship details in one place.</DialogDescription>
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+            {isEdit ? 'Edit client' : 'New client'}
+          </p>
+          <DialogTitle>{isEdit ? 'Edit client' : 'Create a client'}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Update this client's contact and relationship details." : 'Keep contact and relationship details in one place.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit} onKeyDown={handleKeyDown} noValidate>
@@ -203,11 +228,11 @@ function ClientCreateModal({ open, onOpenChange, createClient, members }) {
           <DialogFooter className="justify-between border-t border-border pt-4">
             <p className="text-xs text-muted">Press Cmd/Ctrl+Enter to save</p>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create client'}
+                {isSubmitting ? (isEdit ? 'Saving...' : 'Creating...') : isEdit ? 'Save changes' : 'Create client'}
               </Button>
             </div>
           </DialogFooter>

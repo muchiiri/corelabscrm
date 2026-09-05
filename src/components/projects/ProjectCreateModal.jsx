@@ -35,11 +35,22 @@ const DEAL_CURRENCIES = ['USD', 'KES', 'AED']
 
 const CAPTION_CLASS = 'text-xs font-semibold uppercase tracking-wide text-muted'
 
-function ProjectCreateModal({ open, onOpenChange, createProject, clients, members, initialValues = {} }) {
+function ProjectCreateModal({
+  open,
+  onOpenChange,
+  createProject,
+  updateProject,
+  projectId,
+  mode = 'create',
+  clients,
+  members,
+  initialValues = {},
+}) {
   const [values, setValues] = useState({ ...INITIAL_VALUES, ...initialValues })
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const isEdit = mode === 'edit'
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -51,6 +62,13 @@ function ProjectCreateModal({ open, onOpenChange, createProject, clients, member
       ? values.memberIds.filter((id) => id !== memberId)
       : [...values.memberIds, memberId]
     handleChange({ target: { name: 'memberIds', value: nextMemberIds } })
+  }
+
+  function handleCancel() {
+    setValues({ ...INITIAL_VALUES, ...initialValues })
+    setErrors({})
+    setSubmitError(null)
+    onOpenChange(false)
   }
 
   async function handleSubmit(event) {
@@ -65,12 +83,16 @@ function ProjectCreateModal({ open, onOpenChange, createProject, clients, member
     setIsSubmitting(true)
 
     try {
-      await createProject(values)
-      setValues(INITIAL_VALUES)
+      if (isEdit) {
+        await updateProject(projectId, values)
+      } else {
+        await createProject(values)
+        setValues(INITIAL_VALUES)
+      }
       onOpenChange(false)
-    } catch (createError) {
-      console.error('Failed to create project:', createError)
-      setSubmitError('Something went wrong creating your project. Please try again.')
+    } catch (submitErr) {
+      console.error(`Failed to ${isEdit ? 'update' : 'create'} project:`, submitErr)
+      setSubmitError(`Something went wrong ${isEdit ? 'saving' : 'creating'} your project. Please try again.`)
     } finally {
       setIsSubmitting(false)
     }
@@ -87,9 +109,13 @@ function ProjectCreateModal({ open, onOpenChange, createProject, clients, member
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader className="border-b border-border pb-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-accent">New project</p>
-          <DialogTitle>Create a project</DialogTitle>
-          <DialogDescription>Track progress and keep your team aligned.</DialogDescription>
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+            {isEdit ? 'Edit project' : 'New project'}
+          </p>
+          <DialogTitle>{isEdit ? 'Edit project' : 'Create a project'}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Update your project's details." : 'Track progress and keep your team aligned.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit} onKeyDown={handleKeyDown} noValidate>
@@ -233,30 +259,32 @@ function ProjectCreateModal({ open, onOpenChange, createProject, clients, member
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label className={CAPTION_CLASS}>Team</Label>
-            <div className="flex max-h-32 flex-col gap-1.5 overflow-y-auto">
-              {members.map((member) => (
-                <label key={member.id} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={values.memberIds.includes(member.id)}
-                    onChange={() => toggleMember(member.id)}
-                  />
-                  <Avatar name={member.name} email={member.email} />
-                  <span className="text-sm text-text">{member.name || member.email}</span>
-                </label>
-              ))}
+          {!isEdit && (
+            <div className="flex flex-col gap-1.5">
+              <Label className={CAPTION_CLASS}>Team</Label>
+              <div className="flex max-h-32 flex-col gap-1.5 overflow-y-auto">
+                {members.map((member) => (
+                  <label key={member.id} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={values.memberIds.includes(member.id)}
+                      onChange={() => toggleMember(member.id)}
+                    />
+                    <Avatar name={member.name} email={member.email} />
+                    <span className="text-sm text-text">{member.name || member.email}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <DialogFooter className="justify-between border-t border-border pt-4">
             <p className="text-xs text-muted">Press Cmd/Ctrl+Enter to save</p>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create project'}
+                {isSubmitting ? (isEdit ? 'Saving...' : 'Creating...') : isEdit ? 'Save changes' : 'Create project'}
               </Button>
             </div>
           </DialogFooter>

@@ -103,5 +103,44 @@ export function useWorkspaceProjects(workspaceId) {
     return data
   }
 
-  return { projects, loading, createProject }
+  async function updateProject(projectId, {
+    name,
+    clientId,
+    description,
+    ownerId,
+    startDate,
+    targetDate,
+    labelColor,
+    dealValue,
+    dealCurrency,
+  }) {
+    const { data, error } = await supabase
+      .from('projects')
+      .update({
+        name: name.trim(),
+        client_id: clientId || null,
+        description: description?.trim() || null,
+        owner_id: ownerId || null,
+        start_date: startDate || null,
+        target_date: targetDate || null,
+        label_color: labelColor || 'gray',
+        deal_value: dealValue ? Number(dealValue) : null,
+        deal_currency: dealCurrency || 'USD',
+      })
+      .eq('id', projectId)
+      .select('id, name, client_id, status, description, owner_id, start_date, target_date, label_color, deal_value, deal_currency')
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    setProjects((prev) =>
+      prev.map((project) => (project.id === projectId ? data : project)).sort((a, b) => a.name.localeCompare(b.name)),
+    )
+
+    return data
+  }
+
+  return { projects, loading, createProject, updateProject }
 }

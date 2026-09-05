@@ -84,5 +84,34 @@ export function useWorkspaceClients(workspaceId) {
     return data
   }
 
-  return { clients, loading, createClient }
+  async function updateClient(clientId, values) {
+    const { data, error } = await supabase
+      .from('clients')
+      .update({
+        name: values.name.trim(),
+        email: values.email.trim() || null,
+        phone: values.phone.trim() || null,
+        company: values.company.trim() || null,
+        website: values.website.trim() || null,
+        industry: values.industry?.trim() || null,
+        owner_id: values.ownerId || null,
+        relationship: values.relationship || 'Prospect',
+        notes: values.notes?.trim() || null,
+      })
+      .eq('id', clientId)
+      .select('id, name, email, phone, company, website, industry, owner_id, relationship, notes')
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    setClients((prev) =>
+      prev.map((client) => (client.id === clientId ? data : client)).sort((a, b) => a.name.localeCompare(b.name)),
+    )
+
+    return data
+  }
+
+  return { clients, loading, createClient, updateClient }
 }
