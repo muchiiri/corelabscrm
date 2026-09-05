@@ -51,6 +51,12 @@ export function WorkspaceProvider({ children }) {
     if (authLoading) {
       return
     }
+    // Without this, a refetch triggered by `user` changing (e.g. logging in
+    // right after being signed out, where `loading` already settled to
+    // false with an empty `workspaces`) would leave `loading` false while
+    // the new fetch is in flight - callers like RequireWorkspace would see
+    // stale, empty `workspaces` and redirect before the real data arrives.
+    setLoading(true)
     refetch().finally(() => setLoading(false))
   }, [authLoading, refetch])
 

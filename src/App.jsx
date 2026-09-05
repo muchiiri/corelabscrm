@@ -4,6 +4,7 @@ import LoginPage from '@/pages/LoginPage'
 import SignupPage from '@/pages/SignupPage'
 import DashboardPage from '@/pages/DashboardPage'
 import CreateWorkspacePage from '@/pages/CreateWorkspacePage'
+import SelectWorkspacePage from '@/pages/SelectWorkspacePage'
 import WorkspaceSettingsPage from '@/pages/WorkspaceSettingsPage'
 import TaskListPage from '@/pages/TaskListPage'
 import CreateTaskPage from '@/pages/CreateTaskPage'
@@ -38,6 +39,14 @@ function App() {
           <PublicOnlyRoute>
             <SignupPage />
           </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/workspace"
+        element={
+          <ProtectedRoute>
+            <SelectWorkspacePage />
+          </ProtectedRoute>
         }
       />
       <Route
