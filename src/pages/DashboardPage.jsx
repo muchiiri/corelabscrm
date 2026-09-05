@@ -85,7 +85,8 @@ function DashboardPage() {
     return <p className="p-8 text-muted">Loading...</p>
   }
 
-  const name = user?.user_metadata?.name || user?.email
+  const fullName = members.find((member) => member.id === user?.id)?.name
+  const name = fullName?.trim().split(/\s+/)[0] || user?.email
   const metrics = computeDashboardMetrics(tasks)
   const completionRate = computeCompletionRate(tasks)
   const productivity = computeTeamProductivity(tasks, members)
