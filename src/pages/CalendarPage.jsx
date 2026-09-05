@@ -138,7 +138,7 @@ function CalendarPage() {
               size="icon"
               disabled
               aria-label="Search"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Search className="h-4 w-4" />
             </Button>
@@ -148,7 +148,7 @@ function CalendarPage() {
               size="icon"
               disabled
               aria-label="Notifications"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Bell className="h-4 w-4" />
             </Button>

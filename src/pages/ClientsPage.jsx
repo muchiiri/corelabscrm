@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Search } from 'lucide-react'
+import { Bell, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -207,7 +207,7 @@ function ClientsPage() {
               size="icon"
               disabled
               aria-label="Search"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Search className="h-4 w-4" />
             </Button>
@@ -217,12 +217,13 @@ function ClientsPage() {
               size="icon"
               disabled
               aria-label="Notifications"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Bell className="h-4 w-4" />
             </Button>
             {canWrite && (
               <Button type="button" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="h-4 w-4" />
                 New client
               </Button>
             )}
@@ -300,7 +301,7 @@ function ClientsPage() {
                         <Link to={`/clients/${client.id}`} className="flex items-center gap-2.5 text-text">
                           <Avatar name={client.name} />
                           <span>
-                            <span className="block">{client.name}</span>
+                            <span className="block font-semibold">{client.name}</span>
                             {client.company && (
                               <span className="block text-xs text-muted">{client.company}</span>
                             )}

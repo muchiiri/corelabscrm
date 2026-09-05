@@ -146,7 +146,7 @@ function DashboardPage() {
               size="icon"
               disabled
               aria-label="Search"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Search className="h-4 w-4" />
             </Button>
@@ -156,7 +156,7 @@ function DashboardPage() {
               size="icon"
               disabled
               aria-label="Notifications"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Bell className="h-4 w-4" />
             </Button>
@@ -166,7 +166,7 @@ function DashboardPage() {
               className="bg-[#1F2937] text-white hover:bg-[#111827] hover:opacity-100"
             >
               <Plus className="h-4 w-4" />
-              New
+              New Task
             </Button>
           </div>
         }

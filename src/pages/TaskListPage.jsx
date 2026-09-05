@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Circle, CircleCheck, CircleDot, CircleSlash, Clock, Search } from 'lucide-react'
+import { Bell, Circle, CircleCheck, CircleDot, CircleSlash, Clock, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -332,7 +332,7 @@ function TaskListPage() {
               size="icon"
               disabled
               aria-label="Search"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Search className="h-4 w-4" />
             </Button>
@@ -342,12 +342,13 @@ function TaskListPage() {
               size="icon"
               disabled
               aria-label="Notifications"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Bell className="h-4 w-4" />
             </Button>
             {canWrite && (
               <Button type="button" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="h-4 w-4" />
                 New task
               </Button>
             )}
@@ -555,7 +556,7 @@ function TaskListPage() {
                       </td>
                       <td className="max-w-md py-2.5 pr-4">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="min-w-0 flex-1 truncate text-text">{task.title}</p>
+                          <p className="min-w-0 flex-1 truncate font-semibold text-text">{task.title}</p>
                           {(tagsByTaskId[task.id] ?? []).map((tag) => (
                             <TagBadge key={tag.id} name={tag.name} color={tag.color} />
                           ))}
@@ -591,7 +592,7 @@ function TaskListPage() {
                       </td>
                       <td className="py-2.5 pr-4">
                         {assignee ? (
-                          <span className="flex items-center gap-2 text-text">
+                          <span className="flex items-center gap-2 font-semibold text-text">
                             <Avatar name={assignee.name} email={assignee.email} />
                             {assignee.name || assignee.email}
                           </span>

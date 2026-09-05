@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Search } from 'lucide-react'
+import { Bell, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
@@ -156,7 +156,7 @@ function ProjectsPage() {
               size="icon"
               disabled
               aria-label="Search"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Search className="h-4 w-4" />
             </Button>
@@ -166,12 +166,13 @@ function ProjectsPage() {
               size="icon"
               disabled
               aria-label="Notifications"
-              className="bg-surface-hover"
+              className="bg-surface"
             >
               <Bell className="h-4 w-4" />
             </Button>
             {canWrite && (
               <Button type="button" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="h-4 w-4" />
                 New project
               </Button>
             )}
@@ -234,7 +235,7 @@ function ProjectsPage() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <Link to={`/projects/${project.id}`} className="font-medium text-text hover:underline">
+                    <Link to={`/projects/${project.id}`} className="font-semibold text-text hover:underline">
                       {project.name}
                     </Link>
                     <span
@@ -309,7 +310,7 @@ function ProjectsPage() {
                       <td className="px-4 py-2.5">
                         <Link
                           to={`/projects/${project.id}`}
-                          className="font-medium text-text hover:underline"
+                          className="font-semibold text-text hover:underline"
                         >
                           {project.name}
                         </Link>
