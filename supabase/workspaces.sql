@@ -85,6 +85,16 @@ create policy "Admins can update their workspace"
     )
   );
 
+-- Feature 44e: deleting a workspace is irreversible and cascades to every
+-- project, task, client, and member underneath it (every workspace-scoped
+-- table already has "on delete cascade" back to this one) - restricted to
+-- the workspace's owner specifically, stricter than the Admin-only rename
+-- policy above, given the severity gap between renaming and destroying.
+drop policy if exists "Owners can delete their workspace" on workspaces;
+create policy "Owners can delete their workspace"
+  on workspaces for delete
+  using (owner_id = auth.uid());
+
 create or replace function public.create_workspace(workspace_name text)
 returns workspaces
 language plpgsql

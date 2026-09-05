@@ -203,6 +203,11 @@ create policy "Admins can update their workspace"
     )
   );
 
+drop policy if exists "Owners can delete their workspace" on workspaces;
+create policy "Owners can delete their workspace"
+  on workspaces for delete
+  using (owner_id = auth.uid());
+
 create or replace function public.create_workspace(workspace_name text)
 returns workspaces
 language plpgsql
