@@ -6,9 +6,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Avatar } from '@/components/ui/avatar'
 import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
 import TagPicker from '@/components/tags/TagPicker'
 import { validateTaskForm } from '@/lib/validateTaskForm'
+import { validateCommentBody } from '@/lib/validateCommentBody'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { cn } from '@/lib/utils'
 import { validateRecurrenceRule } from '@/lib/validateRecurrenceRule'
@@ -21,6 +23,7 @@ import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { useTaskSubtasks } from '@/lib/useTaskSubtasks'
+import { useTaskComments } from '@/lib/useTaskComments'
 import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
@@ -60,6 +63,7 @@ function TaskEditPage() {
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const readOnly = myRole === 'Viewer'
   const { subtasks, addSubtask, toggleSubtask, deleteSubtask } = useTaskSubtasks(id)
+  const { comments, addComment } = useTaskComments(id)
   const [values, setValues] = useState(null)
   const [initialStatus, setInitialStatus] = useState(null)
   const [taskFacts, setTaskFacts] = useState(null)
@@ -73,6 +77,10 @@ function TaskEditPage() {
   const [deleteError, setDeleteError] = useState(null)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [subtaskError, setSubtaskError] = useState(null)
+  const [commentValue, setCommentValue] = useState('')
+  const [commentErrors, setCommentErrors] = useState({})
+  const [commentSubmitError, setCommentSubmitError] = useState(null)
+  const [isPostingComment, setIsPostingComment] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -301,6 +309,26 @@ function TaskEditPage() {
     }
   }
 
+  async function handlePostComment() {
+    const validationErrors = validateCommentBody({ body: commentValue })
+    setCommentErrors(validationErrors)
+    if (Object.keys(validationErrors).length > 0) {
+      return
+    }
+
+    setCommentSubmitError(null)
+    setIsPostingComment(true)
+    try {
+      await addComment(user.id, commentValue)
+      setCommentValue('')
+    } catch (error) {
+      console.error('Failed to post comment:', error)
+      setCommentSubmitError('Something went wrong posting that comment. Please try again.')
+    } finally {
+      setIsPostingComment(false)
+    }
+  }
+
   if (loading) {
     return <p className="p-8 text-muted">Loading...</p>
   }
@@ -419,6 +447,57 @@ function TaskEditPage() {
                     Add
                   </Button>
                 </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <Label className={CAPTION_CLASS}>Comments</Label>
+
+              {!readOnly && (
+                <div className="flex flex-col gap-1.5">
+                  {commentSubmitError && (
+                    <p className="rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">
+                      {commentSubmitError}
+                    </p>
+                  )}
+                  <Textarea
+                    placeholder="Write a comment..."
+                    value={commentValue}
+                    onChange={(event) => setCommentValue(event.target.value)}
+                    aria-invalid={Boolean(commentErrors.body)}
+                  />
+                  {commentErrors.body && <p className="text-xs text-danger">{commentErrors.body}</p>}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="self-start"
+                    onClick={handlePostComment}
+                    disabled={isPostingComment}
+                  >
+                    {isPostingComment ? 'Posting...' : 'Post comment'}
+                  </Button>
+                </div>
+              )}
+
+              {comments.length === 0 ? (
+                <p className="text-sm text-muted">No comments yet.</p>
+              ) : (
+                <ul className="flex flex-col gap-4">
+                  {comments.map((comment) => {
+                    const author = members.find((member) => member.id === comment.author_id)
+                    return (
+                      <li key={comment.id} className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-sm text-muted">
+                          <Avatar name={author?.name} email={author?.email} />
+                          <span>{author?.name || author?.email || 'Unknown'}</span>
+                          <span>-</span>
+                          <span>{formatRelativeTime(comment.created_at)}</span>
+                        </div>
+                        <p className="text-text">{comment.body}</p>
+                      </li>
+                    )
+                  })}
+                </ul>
               )}
             </div>
           </div>
