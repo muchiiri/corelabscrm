@@ -1,16 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
 import WorkspaceTab from '@/components/settings/WorkspaceTab'
 import TeamTab from '@/components/settings/TeamTab'
 import BillingTab from '@/components/settings/BillingTab'
 import ProfileTab from '@/components/settings/ProfileTab'
+import NotificationsTab from '@/components/settings/NotificationsTab'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
+import { useAuth } from '@/lib/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+
+const NOTIFICATION_COLUMNS = [
+  'notify_assigned_to_me',
+  'notify_mentions',
+  'notify_due_soon',
+  'notify_project_activity',
+  'notify_product_news',
+]
 
 const TABS = [
   { key: 'profile', label: 'Profile' },
@@ -20,23 +30,40 @@ const TABS = [
   { key: 'workspace', label: 'Workspace' },
 ]
 
-function ComingSoonTab({ title }) {
-  return (
-    <Card className="max-w-sm">
-      <CardContent className="p-6">
-        <CardTitle className="text-heading">{title}</CardTitle>
-        <p className="mt-2 text-sm text-muted">Coming soon.</p>
-      </CardContent>
-    </Card>
-  )
-}
-
 function WorkspaceSettingsPage() {
   const [activeTab, setActiveTab] = useState('workspace')
+  const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace?.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace?.id)
   const isAdmin = myRole === 'Admin'
+  const [notificationsOnCount, setNotificationsOnCount] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadNotificationCount() {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(NOTIFICATION_COLUMNS.join(', '))
+        .eq('id', user.id)
+        .single()
+
+      if (cancelled) {
+        return
+      }
+      if (error || !data) {
+        console.error('Failed to load notification count:', error)
+        return
+      }
+      setNotificationsOnCount(Object.values(data).filter(Boolean).length)
+    }
+
+    loadNotificationCount()
+    return () => {
+      cancelled = true
+    }
+  }, [user.id, activeTab])
 
   return (
     <div className="p-8">
@@ -83,7 +110,14 @@ function WorkspaceSettingsPage() {
         <nav className="flex flex-col gap-0.5 md:col-span-1">
           {TABS.map((tab) => {
             const active = tab.key === activeTab
-            const badge = tab.key === 'team' ? members.length : tab.key === 'billing' ? 'Free' : null
+            const badge =
+              tab.key === 'team'
+                ? members.length
+                : tab.key === 'billing'
+                  ? 'Free'
+                  : tab.key === 'notifications' && notificationsOnCount !== null
+                    ? `${notificationsOnCount} on`
+                    : null
             return (
               <button
                 key={tab.key}
@@ -105,7 +139,7 @@ function WorkspaceSettingsPage() {
 
         <div className="md:col-span-3">
           {activeTab === 'profile' && <ProfileTab />}
-          {activeTab === 'notifications' && <ComingSoonTab title="Notifications" />}
+          {activeTab === 'notifications' && <NotificationsTab />}
           {activeTab === 'team' && <TeamTab />}
           {activeTab === 'billing' && <BillingTab />}
           {activeTab === 'workspace' && <WorkspaceTab />}
