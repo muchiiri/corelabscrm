@@ -235,7 +235,7 @@ function ProjectsPage() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <Link to={`/projects/${project.id}`} className="font-semibold text-text hover:underline">
+                    <Link to={`/projects/${project.id}`} className="font-bold text-text hover:underline">
                       {project.name}
                     </Link>
                     <span
@@ -310,7 +310,7 @@ function ProjectsPage() {
                       <td className="px-4 py-2.5">
                         <Link
                           to={`/projects/${project.id}`}
-                          className="font-semibold text-text hover:underline"
+                          className="font-bold text-text hover:underline"
                         >
                           {project.name}
                         </Link>

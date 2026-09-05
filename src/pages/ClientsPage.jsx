@@ -303,7 +303,7 @@ function ClientsPage() {
                           <Avatar name={client.name} />
                           <span>
                             <span className="flex items-center gap-2">
-                              <span className="font-semibold">{client.name}</span>
+                              <span className="font-bold">{client.name}</span>
                               <RelationshipBadge relationship={client.relationship} />
                             </span>
                             {client.company && (
