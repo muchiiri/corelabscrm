@@ -5,6 +5,7 @@ import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
 import WorkspaceTab from '@/components/settings/WorkspaceTab'
 import TeamTab from '@/components/settings/TeamTab'
+import BillingTab from '@/components/settings/BillingTab'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
@@ -81,7 +82,7 @@ function WorkspaceSettingsPage() {
         <nav className="flex flex-col gap-0.5 md:col-span-1">
           {TABS.map((tab) => {
             const active = tab.key === activeTab
-            const badge = tab.key === 'team' ? members.length : null
+            const badge = tab.key === 'team' ? members.length : tab.key === 'billing' ? 'Free' : null
             return (
               <button
                 key={tab.key}
@@ -105,7 +106,7 @@ function WorkspaceSettingsPage() {
           {activeTab === 'profile' && <ComingSoonTab title="Profile" />}
           {activeTab === 'notifications' && <ComingSoonTab title="Notifications" />}
           {activeTab === 'team' && <TeamTab />}
-          {activeTab === 'billing' && <ComingSoonTab title="Billing" />}
+          {activeTab === 'billing' && <BillingTab />}
           {activeTab === 'workspace' && <WorkspaceTab />}
         </div>
       </div>
