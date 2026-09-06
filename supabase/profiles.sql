@@ -90,7 +90,7 @@ create trigger on_auth_user_created
 -- profiles, same as theme_preference - not a separate table, since this
 -- is a fixed, named set of toggles, not a dynamic list. The existing
 -- "Users can update their own profile" policy above already covers
--- writes to these. Not wired to any real email send yet (no Mailgun
+-- writes to these. Not wired to any real email send yet (no EmailJS
 -- integration exists) - these just persist the user's choice.
 alter table profiles add column if not exists notify_assigned_to_me boolean not null default true;
 alter table profiles add column if not exists notify_mentions boolean not null default true;
