@@ -23,7 +23,7 @@ import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 import { filterTasks } from '@/lib/filterTasks'
-import { formatDate } from '@/lib/formatDate'
+import { formatDueDate } from '@/lib/formatDueDate'
 import { getDatePresetRange } from '@/lib/getDatePresetRange'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskDueThisWeek } from '@/lib/isTaskDueThisWeek'
@@ -582,7 +582,7 @@ function TaskListPage() {
                         </span>
                       </td>
                       <td className={cn('py-2.5 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
-                        {task.due_at ? formatDate(task.due_at) : 'No due date'}
+                        {task.due_at ? formatDueDate(task) : 'No due date'}
                       </td>
                       <td className="py-2.5 pr-4">
                         <TaskSnoozeControl

@@ -22,6 +22,7 @@ import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
 import { formatDate } from '@/lib/formatDate'
+import { formatDueDate } from '@/lib/formatDueDate'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 import { cn } from '@/lib/utils'
@@ -330,7 +331,7 @@ function KanbanPage() {
                         )}
                         {task.due_at && (
                           <span className={isTaskOverdue(task) ? 'text-danger' : 'text-muted'}>
-                            {formatDate(task.due_at)}
+                            {formatDueDate(task)}
                             {isTaskSnoozed(task) && (
                               <span className="ml-1.5 text-faint">
                                 (Snoozed until {formatDate(task.snoozed_until)})

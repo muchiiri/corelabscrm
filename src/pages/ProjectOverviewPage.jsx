@@ -17,6 +17,7 @@ import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/lib/formatDate'
+import { formatDueDate } from '@/lib/formatDueDate'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
@@ -377,7 +378,7 @@ function ProjectOverviewPage() {
                     )}
                   </td>
                   <td className={cn('py-3 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
-                    {task.due_at ? formatDate(task.due_at) : 'No due date'}
+                    {task.due_at ? formatDueDate(task) : 'No due date'}
                     {isTaskSnoozed(task) && (
                       <span className="ml-2 text-xs text-faint">
                         Snoozed until {formatDate(task.snoozed_until)}
