@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MAX_VISIBLE_CHIPS = 2
+const MAX_VISIBLE_DOTS = 6
 const PRIORITIES = ['High', 'Medium', 'Low']
 
 // Local to this page, not the shared PriorityBadge component - same
@@ -127,7 +128,7 @@ function CalendarPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <PageHeader
         title="Calendar"
         subtitle={`${visibleMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · ${scheduledCount} scheduled task${scheduledCount === 1 ? '' : 's'}`}
@@ -159,8 +160,8 @@ function CalendarPage() {
           </div>
         }
       />
-      <div className="flex flex-wrap items-start gap-6">
-      <div className="min-w-0 flex-1">
+      <div className="flex flex-col items-start gap-6 lg:flex-row lg:flex-wrap">
+      <div className="w-full lg:min-w-0 lg:flex-1">
       <div className="mb-4 flex items-center gap-3">
         <Button
           type="button"
@@ -174,7 +175,7 @@ function CalendarPage() {
         <Button type="button" variant="outline" size="icon" onClick={goToNextMonth} aria-label="Next month">
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={goToToday}>
+        <Button type="button" variant="outline" onClick={goToToday}>
           Today
         </Button>
         <p className="text-sm text-muted">
@@ -195,12 +196,14 @@ function CalendarPage() {
           const dayTasks = tasksByDate[key] || []
           const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_CHIPS)
           const overflowCount = dayTasks.length - visibleTasks.length
+          const visibleDotTasks = dayTasks.slice(0, MAX_VISIBLE_DOTS)
+          const dotOverflowCount = dayTasks.length - visibleDotTasks.length
           return (
             <div
               key={key}
               onClick={() => setSelectedDate(key)}
               className={cn(
-                'min-h-24 cursor-pointer bg-surface p-1.5',
+                'min-h-16 cursor-pointer bg-surface p-1.5 lg:min-h-24',
                 isSelected && 'bg-accent-bg ring-1 ring-inset ring-accent-border',
               )}
             >
@@ -213,7 +216,7 @@ function CalendarPage() {
               >
                 {date.getDate()}
               </p>
-              <div className="flex flex-col gap-1">
+              <div className="hidden flex-col gap-1 lg:flex">
                 {visibleTasks.map((task) => (
                   <button
                     key={task.id}
@@ -237,13 +240,24 @@ function CalendarPage() {
                   <p className="px-1 text-xs text-faint">+{overflowCount} more</p>
                 )}
               </div>
+              <div className="flex flex-wrap items-center gap-0.5 lg:hidden">
+                {visibleDotTasks.map((task) => (
+                  <span
+                    key={task.id}
+                    className={cn('h-1.5 w-1.5 shrink-0 rounded-full', PRIORITY_DOT_CLASS[task.priority])}
+                  />
+                ))}
+                {dotOverflowCount > 0 && (
+                  <span className="text-[10px] leading-none text-faint">+{dotOverflowCount}</span>
+                )}
+              </div>
             </div>
           )
         })}
       </div>
       </div>
 
-      <div className="flex w-72 shrink-0 flex-col gap-4">
+      <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0">
         <Card>
           <CardHeader className={isViewingToday ? 'border-b border-border pb-4' : undefined}>
             <CardTitle
