@@ -9,6 +9,7 @@ import PageHeader from '@/components/layout/PageHeader'
 import PriorityBadge from '@/components/tasks/PriorityBadge'
 import TaskSnoozeControl from '@/components/tasks/TaskSnoozeControl'
 import TaskCreateModal from '@/components/tasks/TaskCreateModal'
+import MobileTaskCard from '@/components/tasks/MobileTaskCard'
 import { Avatar } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
 import BulkActionToolbar from '@/components/tasks/BulkActionToolbar'
@@ -321,7 +322,7 @@ function TaskListPage() {
   const paginatedTasks = filteredTasks.slice(pageStart, pageStart + TASKS_PER_PAGE)
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <PageHeader
         title="Tasks"
         subtitle={`${tasks.length} task${tasks.length === 1 ? '' : 's'}, ${overdueCount} overdue, ${dueThisWeekCount} due this week`}
@@ -486,7 +487,7 @@ function TaskListPage() {
             />
           )}
 
-          <Card>
+          <Card className="hidden lg:block">
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="text-sm font-normal text-muted">
                 {filteredTasks.length} task{filteredTasks.length === 1 ? '' : 's'}
@@ -618,7 +619,6 @@ function TaskListPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     disabled={safePage <= 1}
                     onClick={() => setCurrentPage(safePage - 1)}
                   >
@@ -627,7 +627,6 @@ function TaskListPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     disabled={safePage >= totalPages}
                     onClick={() => setCurrentPage(safePage + 1)}
                   >
@@ -637,6 +636,67 @@ function TaskListPage() {
               </CardFooter>
             )}
           </Card>
+
+          <div className="lg:hidden">
+            {filteredTasks.length === 0 ? (
+              <p className="text-muted">No tasks match your filters.</p>
+            ) : (
+              <>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm text-muted">
+                    {filteredTasks.length} task{filteredTasks.length === 1 ? '' : 's'}
+                  </p>
+                  <p className="text-xs text-faint">Sorted by newest</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {paginatedTasks.map((task) => {
+                    const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
+                    const project = task.project_id ? projectsById.get(task.project_id) : null
+                    const client = task.client_id ? clientsById.get(task.client_id) : null
+                    return (
+                      <MobileTaskCard
+                        key={task.id}
+                        task={task}
+                        tags={tagsByTaskId[task.id] ?? []}
+                        assignee={assignee}
+                        project={project}
+                        client={client}
+                        canWrite={canWrite}
+                        isSelected={selectedIds.has(task.id)}
+                        onToggleSelected={toggleSelected}
+                        onSnooze={handleSnooze}
+                        onOpen={() => navigate(`/tasks/${task.id}/edit`)}
+                      />
+                    )
+                  })}
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="text-xs text-faint">
+                    Showing {pageStart + 1}-{Math.min(pageStart + TASKS_PER_PAGE, filteredTasks.length)} of{' '}
+                    {filteredTasks.length} tasks
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={safePage <= 1}
+                      onClick={() => setCurrentPage(safePage - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={safePage >= totalPages}
+                      onClick={() => setCurrentPage(safePage + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </>
       )}
 

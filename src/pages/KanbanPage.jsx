@@ -101,6 +101,10 @@ function KanbanPage() {
   async function handleDrop(event, newStatus) {
     event.preventDefault()
     const taskId = event.dataTransfer.getData('text/plain')
+    changeTaskStatus(taskId, newStatus)
+  }
+
+  async function changeTaskStatus(taskId, newStatus) {
     const task = tasks.find((t) => t.id === taskId)
     if (!task || task.status === newStatus) {
       return
@@ -118,26 +122,6 @@ function KanbanPage() {
     } else {
       const actorName = members.find((member) => member.id === user.id)?.name || user.email
       logActivity(currentWorkspace.id, user.id, `${actorName} moved "${task.title}" to ${newStatus}`, 'task', taskId)
-    }
-  }
-
-  async function handleMarkDone(taskId) {
-    const task = tasks.find((t) => t.id === taskId)
-    if (!task || task.status === 'Done') {
-      return
-    }
-
-    setActionError(null)
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: 'Done' } : t)))
-
-    const { error } = await supabase.from('tasks').update({ status: 'Done' }).eq('id', taskId)
-    if (error) {
-      console.error('Failed to update task status:', error)
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: task.status } : t)))
-      setActionError('Something went wrong updating that task. Please try again.')
-    } else {
-      const actorName = members.find((member) => member.id === user.id)?.name || user.email
-      logActivity(currentWorkspace.id, user.id, `${actorName} moved "${task.title}" to Done`, 'task', taskId)
     }
   }
 
@@ -168,7 +152,7 @@ function KanbanPage() {
   const overdueCount = tasks.filter((task) => isTaskOverdue(task)).length
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <PageHeader
         title="Tasks Kanban"
         subtitle={`${tasks.length} task${tasks.length === 1 ? '' : 's'}, ${overdueCount} overdue`}
@@ -275,7 +259,7 @@ function KanbanPage() {
                               type="button"
                               onClick={(event) => event.stopPropagation()}
                               aria-label="Task actions"
-                              className="shrink-0 rounded-sm p-0.5 text-faint transition hover:bg-surface-hover hover:text-text"
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-faint transition hover:bg-surface-hover hover:text-text"
                             >
                               <MoreVertical className="h-3.5 w-3.5" />
                             </button>
@@ -285,10 +269,21 @@ function KanbanPage() {
                               Edit
                             </DropdownMenuItem>
                             {canWrite && task.status !== 'Done' && (
-                              <DropdownMenuItem onSelect={() => handleMarkDone(task.id)}>
+                              <DropdownMenuItem onSelect={() => changeTaskStatus(task.id, 'Done')}>
                                 Mark Done
                               </DropdownMenuItem>
                             )}
+                            {canWrite &&
+                              STATUS_COLUMNS.filter(
+                                (status) => status !== 'Done' && status !== task.status,
+                              ).map((status) => (
+                                <DropdownMenuItem
+                                  key={status}
+                                  onSelect={() => changeTaskStatus(task.id, status)}
+                                >
+                                  Move to {status}
+                                </DropdownMenuItem>
+                              ))}
                             {canWrite && (
                               <DropdownMenuItem
                                 onSelect={(event) => {
@@ -346,7 +341,7 @@ function KanbanPage() {
                 <button
                   type="button"
                   onClick={() => setCreateDefaults({ status })}
-                  className="flex items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs text-muted hover:bg-surface hover:text-text"
+                  className="flex h-9 items-center gap-1.5 rounded-sm px-2 text-xs text-muted hover:bg-surface hover:text-text"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add task
