@@ -12,6 +12,7 @@ import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { supabase } from '@/lib/supabase'
+import { formatDate } from '@/lib/formatDate'
 import { groupTasksByProjectId } from '@/lib/groupTasksByProjectId'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
 import { rowsToCsv } from '@/lib/rowsToCsv'
@@ -280,7 +281,7 @@ function ProjectsPage() {
                         </span>
                       )}
                     </div>
-                    {nextDue && <span>{new Date(nextDue.due_at).toLocaleDateString()}</span>}
+                    {nextDue && <span>{formatDate(nextDue.due_at)}</span>}
                   </div>
                 </CardContent>
               </Card>
@@ -355,7 +356,7 @@ function ProjectsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-muted">
-                        {nextDue ? new Date(nextDue.due_at).toLocaleDateString() : '—'}
+                        {nextDue ? formatDate(nextDue.due_at) : '—'}
                       </td>
                     </tr>
                   )

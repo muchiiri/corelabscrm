@@ -10,6 +10,7 @@ import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
 import ClientCreateModal from '@/components/clients/ClientCreateModal'
 import { validateInteractionNote } from '@/lib/validateInteractionNote'
 import { formatCurrency } from '@/lib/formatCurrency'
+import { formatDate } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
@@ -345,7 +346,7 @@ function ClientDetailPage() {
               )}
               <div className="flex items-center justify-between">
                 <dt className="text-muted">Client since</dt>
-                <dd className="text-text">{new Date(client.created_at).toLocaleDateString()}</dd>
+                <dd className="text-text">{formatDate(client.created_at)}</dd>
               </div>
             </dl>
           </CardContent>

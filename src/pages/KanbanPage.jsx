@@ -21,6 +21,7 @@ import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { useAuth } from '@/lib/AuthContext'
 import { logActivity } from '@/lib/logActivity'
 import { supabase } from '@/lib/supabase'
+import { formatDate } from '@/lib/formatDate'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 import { cn } from '@/lib/utils'
@@ -329,10 +330,10 @@ function KanbanPage() {
                         )}
                         {task.due_at && (
                           <span className={isTaskOverdue(task) ? 'text-danger' : 'text-muted'}>
-                            {new Date(task.due_at).toLocaleDateString()}
+                            {formatDate(task.due_at)}
                             {isTaskSnoozed(task) && (
                               <span className="ml-1.5 text-faint">
-                                (Snoozed until {new Date(task.snoozed_until).toLocaleDateString()})
+                                (Snoozed until {formatDate(task.snoozed_until)})
                               </span>
                             )}
                           </span>

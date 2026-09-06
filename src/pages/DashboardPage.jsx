@@ -14,6 +14,7 @@ import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { supabase } from '@/lib/supabase'
+import { formatDate } from '@/lib/formatDate'
 import { computeDashboardMetrics } from '@/lib/computeDashboardMetrics'
 import { isTaskDueToday } from '@/lib/isTaskDueToday'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
@@ -330,7 +331,7 @@ function DashboardPage() {
                     />
                     <span className="flex-1 truncate">{task.title}</span>
                     <span className="shrink-0 text-xs text-muted">
-                      {new Date(task.due_at).toLocaleDateString()}
+                      {formatDate(task.due_at)}
                     </span>
                   </button>
                 ))}

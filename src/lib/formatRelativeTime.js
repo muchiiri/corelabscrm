@@ -1,3 +1,5 @@
+import { formatDate } from '@/lib/formatDate'
+
 export function formatRelativeTime(isoString) {
   const diffMs = Date.now() - new Date(isoString).getTime()
   const diffMinutes = Math.floor(diffMs / 60000)
@@ -16,5 +18,5 @@ export function formatRelativeTime(isoString) {
   if (diffDays < 7) {
     return `${diffDays}d ago`
   }
-  return new Date(isoString).toLocaleDateString()
+  return formatDate(isoString)
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { formatDate } from '@/lib/formatDate'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 import { toEndOfDayISOString } from '@/lib/toEndOfDayISOString'
 
@@ -47,7 +48,7 @@ function TaskSnoozeControl({ task, onSnooze, disabled = false }) {
   if (isTaskSnoozed(task)) {
     return (
       <span className="inline-flex items-center gap-2 text-xs text-faint">
-        Snoozed until {new Date(task.snoozed_until).toLocaleDateString()}
+        Snoozed until {formatDate(task.snoozed_until)}
         <button
           type="button"
           onClick={(event) => {

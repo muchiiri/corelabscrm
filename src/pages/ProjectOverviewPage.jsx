@@ -16,6 +16,7 @@ import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { formatDate } from '@/lib/formatDate'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskSnoozed } from '@/lib/isTaskSnoozed'
 import { computeCompletionRate } from '@/lib/computeCompletionRate'
@@ -180,7 +181,7 @@ function ProjectOverviewPage() {
 
   const subtitleParts = [client ? client.name : 'No client', project.status]
   if (project.target_date) {
-    subtitleParts.push(`due ${new Date(project.target_date).toLocaleDateString()}`)
+    subtitleParts.push(`due ${formatDate(project.target_date)}`)
   }
   const subtitle = subtitleParts.join(' · ')
 
@@ -197,7 +198,7 @@ function ProjectOverviewPage() {
         task.title,
         task.priority,
         task.status,
-        task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date',
+        task.due_at ? formatDate(task.due_at) : 'No due date',
         assignee ? assignee.name || assignee.email : 'Unassigned',
       ]
     })
@@ -316,7 +317,7 @@ function ProjectOverviewPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold text-text">
-              {project.target_date ? new Date(project.target_date).toLocaleDateString() : '—'}
+              {project.target_date ? formatDate(project.target_date) : '—'}
             </p>
           </CardContent>
         </Card>
@@ -376,10 +377,10 @@ function ProjectOverviewPage() {
                     )}
                   </td>
                   <td className={cn('py-3 pr-4', isTaskOverdue(task) ? 'text-danger' : 'text-muted')}>
-                    {task.due_at ? new Date(task.due_at).toLocaleDateString() : 'No due date'}
+                    {task.due_at ? formatDate(task.due_at) : 'No due date'}
                     {isTaskSnoozed(task) && (
                       <span className="ml-2 text-xs text-faint">
-                        Snoozed until {new Date(task.snoozed_until).toLocaleDateString()}
+                        Snoozed until {formatDate(task.snoozed_until)}
                       </span>
                     )}
                   </td>
@@ -416,7 +417,7 @@ function ProjectOverviewPage() {
       <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
         <p className="text-xs text-muted">
           Owner: {owner ? owner.name || owner.email : 'Unassigned'} · Created{' '}
-          {new Date(project.created_at).toLocaleDateString()}
+          {formatDate(project.created_at)}
         </p>
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" size="sm" disabled>

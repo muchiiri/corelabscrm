@@ -11,6 +11,7 @@ import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
 import TagPicker from '@/components/tags/TagPicker'
 import { validateTaskForm } from '@/lib/validateTaskForm'
 import { validateCommentBody } from '@/lib/validateCommentBody'
+import { formatDate } from '@/lib/formatDate'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { cn } from '@/lib/utils'
 import { validateRecurrenceRule } from '@/lib/validateRecurrenceRule'
@@ -682,7 +683,7 @@ function TaskEditPage() {
             <dl className="flex flex-col gap-2 border-t border-border pt-4 text-sm">
               <div className="flex items-center justify-between">
                 <dt className={CAPTION_CLASS}>Created</dt>
-                <dd className="text-text">{new Date(taskFacts.createdAt).toLocaleDateString()}</dd>
+                <dd className="text-text">{formatDate(taskFacts.createdAt)}</dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className={CAPTION_CLASS}>Task ID</dt>
