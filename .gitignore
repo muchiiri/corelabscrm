@@ -23,6 +23,9 @@ dist-ssr
 blueprint/
 CLAUDE.md
 
+# Playwright MCP session output
+.playwright-mcp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

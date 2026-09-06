@@ -36,7 +36,7 @@ function DashboardPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
-  const { members } = useWorkspaceMembers(currentWorkspace.id)
+  const { members, loading: membersLoading } = useWorkspaceMembers(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
   const { clients } = useWorkspaceClients(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
@@ -82,7 +82,7 @@ function DashboardPage() {
     }
   }, [currentWorkspace.id])
 
-  if (loading) {
+  if (loading || membersLoading) {
     return <p className="p-8 text-muted">Loading...</p>
   }
 
