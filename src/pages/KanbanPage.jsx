@@ -232,7 +232,7 @@ function KanbanPage() {
           return (
             <div
               key={status}
-              className="flex w-64 shrink-0 flex-col gap-3 rounded-lg bg-surface-hover p-3"
+              className="flex w-48 shrink-0 flex-col gap-3 rounded-lg bg-surface-hover p-3"
             >
               <div className="flex items-center gap-1.5 text-sm text-muted">
                 <span className={cn('h-2 w-2 shrink-0 rounded-full', STATUS_DOT_CLASS[status])} />
@@ -310,34 +310,31 @@ function KanbanPage() {
                         </DropdownMenu>
                       </div>
                       {project && <p className="text-xs text-muted">{project.name}</p>}
-                      <div className="mb-2 mt-2">
+                      <div className="mt-2 flex items-center justify-between text-xs">
                         <span
                           className={cn(
-                            'inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                            'inline-block rounded-full px-2 py-0.5 font-medium',
                             PRIORITY_PILL_CLASS[task.priority],
                           )}
                         >
                           {task.priority}
                         </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        {assignee ? (
-                          <span className="flex items-center gap-1.5 text-text">
-                            <Avatar name={assignee.name} email={assignee.email} />
-                            {assignee.name || assignee.email}
-                          </span>
-                        ) : (
-                          <span className="text-muted">Unassigned</span>
-                        )}
                         {task.due_at && (
                           <span className={isTaskOverdue(task) ? 'text-danger' : 'text-muted'}>
                             {formatDueDate(task)}
-                            {isTaskSnoozed(task) && (
-                              <span className="ml-1.5 text-faint">
-                                (Snoozed until {formatDate(task.snoozed_until)})
-                              </span>
-                            )}
                           </span>
+                        )}
+                      </div>
+                      <div className="mt-2 flex items-center justify-end gap-1.5 text-xs">
+                        {isTaskSnoozed(task) && (
+                          <span className="mr-auto text-faint">
+                            Snoozed until {formatDate(task.snoozed_until)}
+                          </span>
+                        )}
+                        {assignee ? (
+                          <Avatar name={assignee.name} email={assignee.email} />
+                        ) : (
+                          <span className="text-muted">Unassigned</span>
                         )}
                       </div>
                     </Card>
