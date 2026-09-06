@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Plus, Search } from 'lucide-react'
+import { Bell, MoreVertical, Plus, Search } from 'lucide-react'
 import { STATUS_DOT_CLASS } from '@/components/tasks/StatusBadge'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import PageHeader from '@/components/layout/PageHeader'
 import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
@@ -42,8 +48,9 @@ function KanbanPage() {
   const canWrite = myRole !== 'Viewer'
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [dropError, setDropError] = useState(null)
+  const [actionError, setActionError] = useState(null)
   const [createDefaults, setCreateDefaults] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -98,17 +105,55 @@ function KanbanPage() {
     }
 
     const previousStatus = task.status
-    setDropError(null)
+    setActionError(null)
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)))
 
     const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId)
     if (error) {
       console.error('Failed to update task status:', error)
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t)))
-      setDropError('Something went wrong updating that task. Please try again.')
+      setActionError('Something went wrong updating that task. Please try again.')
     } else {
       const actorName = members.find((member) => member.id === user.id)?.name || user.email
       logActivity(currentWorkspace.id, user.id, `${actorName} moved "${task.title}" to ${newStatus}`, 'task', taskId)
+    }
+  }
+
+  async function handleMarkDone(taskId) {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task || task.status === 'Done') {
+      return
+    }
+
+    setActionError(null)
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: 'Done' } : t)))
+
+    const { error } = await supabase.from('tasks').update({ status: 'Done' }).eq('id', taskId)
+    if (error) {
+      console.error('Failed to update task status:', error)
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: task.status } : t)))
+      setActionError('Something went wrong updating that task. Please try again.')
+    } else {
+      const actorName = members.find((member) => member.id === user.id)?.name || user.email
+      logActivity(currentWorkspace.id, user.id, `${actorName} moved "${task.title}" to Done`, 'task', taskId)
+    }
+  }
+
+  async function handleDeleteTask(taskId) {
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) {
+      return
+    }
+
+    setActionError(null)
+    setConfirmDeleteId(null)
+    setTasks((prev) => prev.filter((t) => t.id !== taskId))
+
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+    if (error) {
+      console.error('Failed to delete task:', error)
+      setTasks((prev) => [...prev, task])
+      setActionError('Something went wrong deleting that task. Please try again.')
     }
   }
 
@@ -175,11 +220,11 @@ function KanbanPage() {
         </div>
       </div>
 
-      {dropError && (
-        <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{dropError}</p>
+      {actionError && (
+        <p className="mb-4 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger">{actionError}</p>
       )}
 
-      <div className="flex gap-4 overflow-x-auto">
+      <div className="flex items-start gap-4 overflow-x-auto">
         {STATUS_COLUMNS.map((status) => {
           const columnTasks = tasks.filter((task) => task.status === status)
           return (
@@ -209,6 +254,7 @@ function KanbanPage() {
                 {columnTasks.map((task) => {
                   const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
                   const project = task.project_id ? projectsById.get(task.project_id) : null
+                  const isConfirmingDelete = confirmDeleteId === task.id
                   return (
                     <Card
                       key={task.id}
@@ -217,7 +263,50 @@ function KanbanPage() {
                       onDragStart={canWrite ? (event) => handleDragStart(event, task.id) : undefined}
                       className={cn('p-3 hover:shadow-md', canWrite ? 'cursor-grab' : 'cursor-pointer')}
                     >
-                      <p className="text-sm text-text">{task.title}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-bold text-text">{task.title}</p>
+                        <DropdownMenu
+                          onOpenChange={(open) => !open && setConfirmDeleteId(null)}
+                        >
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(event) => event.stopPropagation()}
+                              aria-label="Task actions"
+                              className="shrink-0 rounded-sm p-0.5 text-faint transition hover:bg-surface-hover hover:text-text"
+                            >
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent onClick={(event) => event.stopPropagation()}>
+                            <DropdownMenuItem onSelect={() => navigate(`/tasks/${task.id}/edit`)}>
+                              Edit
+                            </DropdownMenuItem>
+                            {canWrite && task.status !== 'Done' && (
+                              <DropdownMenuItem onSelect={() => handleMarkDone(task.id)}>
+                                Mark Done
+                              </DropdownMenuItem>
+                            )}
+                            {canWrite && (
+                              <DropdownMenuItem
+                                onSelect={(event) => {
+                                  if (isConfirmingDelete) {
+                                    handleDeleteTask(task.id)
+                                  } else {
+                                    event.preventDefault()
+                                    setConfirmDeleteId(task.id)
+                                  }
+                                }}
+                                className={
+                                  isConfirmingDelete ? 'text-danger data-[highlighted]:bg-danger-bg' : undefined
+                                }
+                              >
+                                {isConfirmingDelete ? 'Confirm delete?' : 'Delete'}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       {project && <p className="text-xs text-muted">{project.name}</p>}
                       <div className="mb-2 mt-2">
                         <span
