@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { sendTestEmail } from '@/lib/sendTestEmail'
 
 const NOTIFICATION_ROWS = [
   {
@@ -38,6 +40,8 @@ function NotificationsTab() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [rowError, setRowError] = useState(null)
+  const [isSendingTest, setIsSendingTest] = useState(false)
+  const [testResult, setTestResult] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -83,6 +87,24 @@ function NotificationsTab() {
     }
   }
 
+  async function handleSendTest() {
+    setTestResult(null)
+    setIsSendingTest(true)
+
+    try {
+      await sendTestEmail(user.email)
+      setTestResult({ type: 'success', message: `Test email sent to ${user.email}.` })
+    } catch (error) {
+      console.error('Failed to send test email:', error)
+      setTestResult({
+        type: 'error',
+        message: 'Something went wrong sending the test email. Please try again.',
+      })
+    } finally {
+      setIsSendingTest(false)
+    }
+  }
+
   if (loading) {
     return <p className="text-sm text-muted">Loading...</p>
   }
@@ -119,8 +141,28 @@ function NotificationsTab() {
             </li>
           ))}
         </ul>
-        <p className="mt-4 border-t border-border pt-4 text-xs text-muted">
-          These preferences are saved now and will take effect once email delivery ships.
+        <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-text">Test email delivery</p>
+              <p className="text-xs text-muted">Send a one-off test email to {user.email} to confirm delivery is configured.</p>
+            </div>
+            <Button type="button" variant="outline" onClick={handleSendTest} disabled={isSendingTest}>
+              {isSendingTest ? 'Sending...' : 'Send test email'}
+            </Button>
+          </div>
+          {testResult && (
+            <p
+              className={`rounded-sm px-3 py-2 text-sm ${
+                testResult.type === 'success' ? 'bg-success-bg text-success' : 'bg-danger-bg text-danger'
+              }`}
+            >
+              {testResult.message}
+            </p>
+          )}
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          Digest and reminder emails aren't wired to these toggles yet - that ships in a later feature.
         </p>
         <p className="mt-2 text-xs text-muted">Notification preferences save per account.</p>
       </CardContent>
