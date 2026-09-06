@@ -23,7 +23,7 @@ function ActivityPanel() {
   const { activity, loading } = useActivityFeed(currentWorkspace?.id)
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface px-5 py-6 lg:flex">
+    <aside className="sticky top-0 flex h-screen w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface px-5 py-6">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-text">Activity</h2>
         <Button type="button" variant="ghost" size="sm" disabled>
