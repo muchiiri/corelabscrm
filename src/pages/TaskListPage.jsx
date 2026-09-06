@@ -28,6 +28,9 @@ import { formatDueDate } from '@/lib/formatDueDate'
 import { getDatePresetRange } from '@/lib/getDatePresetRange'
 import { isTaskOverdue } from '@/lib/isTaskOverdue'
 import { isTaskDueThisWeek } from '@/lib/isTaskDueThisWeek'
+import { rowsToCsv } from '@/lib/rowsToCsv'
+import { downloadTextFile } from '@/lib/downloadTextFile'
+import { buildReportPdf } from '@/lib/buildReportPdf'
 import { cn } from '@/lib/utils'
 
 const INITIAL_FILTERS = {
@@ -42,6 +45,18 @@ const INITIAL_FILTERS = {
 const DATE_PRESETS = ['Today', 'This Week', 'This Month', 'Future']
 
 const TASKS_PER_PAGE = 10
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+const TASK_REPORT_PERIODS = ['This Week', 'This Month', 'All Time']
+
+const TASK_REPORT_PERIOD_SLUGS = {
+  'This Week': 'this-week',
+  'This Month': 'this-month',
+  'All Time': 'all-time',
+}
+
+const TASK_REPORT_HEADERS = ['Task', 'Project', 'Assignee', 'Completed']
 
 // Local to this page, not the shared StatusBadge component - see
 // current-feature.md's Design reference for why. Literal class strings,
@@ -83,6 +98,7 @@ function TaskListPage() {
   const [isBulkActionPending, setIsBulkActionPending] = useState(false)
   const [bulkActionError, setBulkActionError] = useState(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [reportPeriod, setReportPeriod] = useState('This Week')
 
   useEffect(() => {
     let cancelled = false
@@ -101,7 +117,7 @@ function TaskListPage() {
 
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, priority, status, due_at, assignee_id, project_id, client_id, snoozed_until')
+        .select('id, title, priority, status, due_at, assignee_id, project_id, client_id, snoozed_until, updated_at')
         .eq('workspace_id', currentWorkspace.id)
         .order('created_at', { ascending: false })
 
@@ -315,6 +331,70 @@ function TaskListPage() {
   const overdueCount = tasks.filter((task) => isTaskOverdue(task)).length
   const dueThisWeekCount = tasks.filter((task) => isTaskDueThisWeek(task)).length
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE))
+
+  // 7-day/30-day rolling windows, matching computeDashboardMetrics.js's
+  // "completed this week" convention rather than calendar boundaries.
+  const reportRangeEnd = new Date()
+  const reportRangeStart =
+    reportPeriod === 'This Month'
+      ? new Date(reportRangeEnd.getTime() - 30 * DAY_MS)
+      : new Date(reportRangeEnd.getTime() - 7 * DAY_MS)
+
+  const completedTasksInPeriod = tasks.filter((task) => {
+    if (task.status !== 'Done') {
+      return false
+    }
+    if (reportPeriod === 'All Time') {
+      return true
+    }
+    const updatedAt = new Date(task.updated_at)
+    return updatedAt >= reportRangeStart && updatedAt <= reportRangeEnd
+  })
+
+  function buildReportRows() {
+    return completedTasksInPeriod.map((task) => {
+      const project = task.project_id ? projectsById.get(task.project_id) : null
+      const assignee = task.assignee_id ? membersById.get(task.assignee_id) : null
+      return [
+        task.title,
+        project ? project.name : 'No project',
+        assignee ? assignee.name || assignee.email : 'Unassigned',
+        task.updated_at.slice(0, 10),
+      ]
+    })
+  }
+
+  async function logReport(format) {
+    // All Time has no natural start bound, so both dates collapse to today -
+    // the same degenerate convention ProjectsPage's project-status report uses.
+    const periodStart =
+      reportPeriod === 'All Time' ? reportRangeEnd.toISOString().slice(0, 10) : reportRangeStart.toISOString().slice(0, 10)
+    const periodEnd = reportRangeEnd.toISOString().slice(0, 10)
+    const { error } = await supabase.from('reports').insert({
+      workspace_id: currentWorkspace.id,
+      type: 'task-completion',
+      format,
+      period_start: periodStart,
+      period_end: periodEnd,
+    })
+    if (error) {
+      console.error('Failed to log report export:', error)
+    }
+  }
+
+  function handleExportCsv() {
+    const today = new Date().toISOString().slice(0, 10)
+    const csv = rowsToCsv(TASK_REPORT_HEADERS, buildReportRows())
+    downloadTextFile(`task-completion-report-${TASK_REPORT_PERIOD_SLUGS[reportPeriod]}-${today}.csv`, csv, 'text/csv')
+    logReport('csv')
+  }
+
+  function handleExportPdf() {
+    const today = new Date().toISOString().slice(0, 10)
+    const doc = buildReportPdf('Task completion report', TASK_REPORT_HEADERS, buildReportRows())
+    doc.save(`task-completion-report-${TASK_REPORT_PERIOD_SLUGS[reportPeriod]}-${today}.pdf`)
+    logReport('pdf')
+  }
   // Guards against a bulk delete shrinking the list out from under an
   // already-advanced page, without needing a dedicated effect.
   const safePage = Math.min(currentPage, totalPages)
@@ -697,6 +777,49 @@ function TaskListPage() {
               </>
             )}
           </div>
+
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-heading">Task Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {TASK_REPORT_PERIODS.map((period) => (
+                  <Button
+                    key={period}
+                    type="button"
+                    variant={reportPeriod === period ? 'secondary' : 'outline'}
+                    onClick={() => setReportPeriod(period)}
+                  >
+                    {period}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted">
+                  {completedTasksInPeriod.length} task{completedTasksInPeriod.length === 1 ? '' : 's'} completed
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleExportCsv}
+                    disabled={completedTasksInPeriod.length === 0}
+                  >
+                    Export CSV
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleExportPdf}
+                    disabled={completedTasksInPeriod.length === 0}
+                  >
+                    Export PDF
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </>
       )}
 
