@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
 import ClientCreateModal from '@/components/clients/ClientCreateModal'
 import RelationshipBadge from '@/components/clients/RelationshipBadge'
+import MobileClientCard from '@/components/clients/MobileClientCard'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
@@ -196,7 +197,7 @@ function ClientsPage() {
   const paginatedClients = filteredClients.slice(pageStart, pageStart + CLIENTS_PER_PAGE)
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <PageHeader
         title="Clients"
         subtitle={`${clients.length} client${clients.length === 1 ? '' : 's'}, ${clients.filter((client) => client.relationship === 'Active').length} active`}
@@ -247,13 +248,12 @@ function ClientsPage() {
         />
       </div>
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {STATUS_TABS.map((tab) => (
           <Button
             key={tab}
             type="button"
             variant={statusFilter === tab ? 'secondary' : 'outline'}
-            size="sm"
             onClick={() => {
               setStatusFilter(tab)
               setCurrentPage(1)
@@ -264,7 +264,7 @@ function ClientsPage() {
         ))}
       </div>
 
-      <Card>
+      <Card className="hidden lg:block">
         <CardHeader>
           <CardTitle className="text-sm font-normal text-muted">
             {filteredClients.length} client{filteredClients.length === 1 ? '' : 's'}
@@ -278,6 +278,7 @@ function ClientsPage() {
               {statusFilter === 'All' ? 'No clients match your search.' : `No ${statusFilter} clients.`}
             </p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted">
@@ -355,6 +356,7 @@ function ClientsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
         {filteredClients.length > 0 && (
@@ -367,7 +369,6 @@ function ClientsPage() {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 disabled={safePage <= 1}
                 onClick={() => setCurrentPage(safePage - 1)}
               >
@@ -376,7 +377,6 @@ function ClientsPage() {
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 disabled={safePage >= totalPages}
                 onClick={() => setCurrentPage(safePage + 1)}
               >
@@ -386,6 +386,69 @@ function ClientsPage() {
           </CardFooter>
         )}
       </Card>
+
+      <div className="lg:hidden">
+        {clients.length === 0 ? (
+          <p className="text-muted">No clients yet.</p>
+        ) : filteredClients.length === 0 ? (
+          <p className="text-muted">
+            {statusFilter === 'All' ? 'No clients match your search.' : `No ${statusFilter} clients.`}
+          </p>
+        ) : (
+          <>
+            <p className="mb-2 text-sm text-muted">
+              {filteredClients.length} client{filteredClients.length === 1 ? '' : 's'}
+            </p>
+            <div className="flex flex-col gap-2">
+              {paginatedClients.map((client) => {
+                const completionRate = computeCompletionRate(tasksByClientId[client.id] || [])
+                const openCount = completionRate.total - completionRate.completed
+                const lastContact = lastContactByClientId[client.id]
+                const owner = client.owner_id ? membersById.get(client.owner_id) : null
+                const openValueByCurrency = openValueByClientId[client.id]
+                return (
+                  <MobileClientCard
+                    key={client.id}
+                    client={client}
+                    owner={owner}
+                    projectCount={projectCountByClientId[client.id] || 0}
+                    openCount={openCount}
+                    completionRate={completionRate}
+                    openValueByCurrency={openValueByCurrency}
+                    lastContact={lastContact}
+                  />
+                )
+              })}
+            </div>
+            {filteredClients.length > 0 && (
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-xs text-faint">
+                  Showing {pageStart + 1}-{Math.min(pageStart + CLIENTS_PER_PAGE, filteredClients.length)} of{' '}
+                  {filteredClients.length} clients
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={safePage <= 1}
+                    onClick={() => setCurrentPage(safePage - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setCurrentPage(safePage + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <ClientCreateModal
         open={isCreateOpen}

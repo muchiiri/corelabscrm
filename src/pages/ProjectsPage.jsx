@@ -145,7 +145,7 @@ function ProjectsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <PageHeader
         title="Projects"
         subtitle={`${projects.length} project${projects.length === 1 ? '' : 's'}, ${countByStatus('Active')} active`}
@@ -181,11 +181,10 @@ function ProjectsPage() {
         }
       />
 
-      <div className="mb-4 flex items-center justify-end gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
         <Button
           type="button"
           variant={viewMode === 'grid' ? 'secondary' : 'outline'}
-          size="sm"
           onClick={() => setViewMode('grid')}
         >
           Grid
@@ -193,26 +192,25 @@ function ProjectsPage() {
         <Button
           type="button"
           variant={viewMode === 'list' ? 'secondary' : 'outline'}
-          size="sm"
           onClick={() => setViewMode('list')}
+          className="hidden lg:inline-flex"
         >
           List
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+        <Button type="button" variant="outline" onClick={handleExportCsv}>
           Export CSV
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={handleExportPdf}>
+        <Button type="button" variant="outline" onClick={handleExportPdf}>
           Export PDF
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {STATUS_TABS.map((tab) => (
           <Button
             key={tab}
             type="button"
             variant={statusFilter === tab ? 'secondary' : 'outline'}
-            size="sm"
             onClick={() => setStatusFilter(tab)}
           >
             {tab} ({countByStatus(tab)})
@@ -290,7 +288,7 @@ function ProjectsPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="overflow-x-auto p-0">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted">
