@@ -329,10 +329,10 @@ function ProjectOverviewPage() {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Tasks in this project</h2>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+          <Button type="button" variant="outline" onClick={handleExportCsv}>
             Export CSV
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={handleExportPdf}>
+          <Button type="button" variant="outline" onClick={handleExportPdf}>
             Export PDF
           </Button>
         </div>
@@ -341,6 +341,7 @@ function ProjectOverviewPage() {
       {tasks.length === 0 ? (
         <p className="text-muted">No tasks in this project yet.</p>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
           <tbody>
             {tasks.map((task) => {
@@ -390,6 +391,7 @@ function ProjectOverviewPage() {
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       <div className="mt-6">

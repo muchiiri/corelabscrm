@@ -123,17 +123,20 @@ function TeamTab() {
         )}
         <ul className="flex flex-col gap-3">
           {members.map((member) => (
-            <li key={member.id} className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-3">
+            <li
+              key={member.id}
+              className="flex flex-col items-start gap-2 md:flex-row md:items-center md:justify-between"
+            >
+              <span className="flex min-w-0 items-center gap-3">
                 <Avatar name={member.name} email={member.email} />
-                <span className="flex flex-col">
+                <span className="flex min-w-0 flex-col">
                   <span className="flex items-center gap-2 text-sm font-semibold text-text">
                     {member.name || member.email}
                     {member.id === user?.id && (
                       <span className="text-xs font-normal text-secondary">You</span>
                     )}
                   </span>
-                  {member.name && <span className="text-xs text-muted">{member.email}</span>}
+                  {member.name && <span className="truncate text-xs text-muted">{member.email}</span>}
                 </span>
               </span>
               <span className="flex items-center gap-3">
