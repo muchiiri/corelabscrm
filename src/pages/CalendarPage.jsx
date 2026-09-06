@@ -106,6 +106,7 @@ function CalendarPage() {
   if (loading) return <p className="p-8 text-muted">Loading...</p>
 
   const todayKey = toDateKey(new Date())
+  const isViewingToday = selectedDate === todayKey
   const selectedDayTasks = tasksByDate[selectedDate] || []
   const selectedDateLabel = parseDateKey(selectedDate).toLocaleDateString(undefined, {
     weekday: 'long',
@@ -244,8 +245,12 @@ function CalendarPage() {
 
       <div className="flex w-72 shrink-0 flex-col gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-normal text-muted">{selectedDateLabel}</CardTitle>
+          <CardHeader className={isViewingToday ? 'border-b border-border pb-4' : undefined}>
+            <CardTitle
+              className={cn('text-sm', isViewingToday ? 'font-bold text-text' : 'font-normal text-muted')}
+            >
+              {selectedDateLabel}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {selectedDayTasks.length === 0 ? (
