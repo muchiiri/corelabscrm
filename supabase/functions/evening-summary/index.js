@@ -49,22 +49,107 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char])
 }
 
-function buildSummaryHtml(completedTasks, activityEntries, activityOverflowCount) {
+function formatDateLabel(now) {
+  const plus3Now = new Date(now.getTime() + PLUS_3_OFFSET_MS)
+  return plus3Now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).toUpperCase()
+}
+
+// Display only, not a boundary calculation (those stay manual +3 offset
+// math elsewhere in this file) - Africa/Nairobi is a real, DST-free UTC+3
+// zone, matching project-overview.md's "+3 UTC (Nairobi)" send-time note.
+function formatTimeLabel(occurredAt) {
+  return new Date(occurredAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Nairobi' })
+}
+
+function buildHeadline(completedCount, activityCount) {
+  const parts = []
+  if (completedCount > 0) {
+    parts.push(`${completedCount} task${completedCount === 1 ? '' : 's'} completed`)
+  }
+  if (activityCount > 0) {
+    parts.push(`${activityCount} update${activityCount === 1 ? '' : 's'}`)
+  }
+  return parts.join(', ')
+}
+
+function buildSummaryHtml(completedTasks, activityEntries, activityOverflowCount, activityTotalCount, dateLabel) {
+  const completedCount = completedTasks.length
+
+  const statsHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 24px;">
+      <tr>
+        <td width="50%" style="padding-right:8px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6; border-radius:8px;">
+            <tr><td style="padding:16px;">
+              <div style="font-size:22px; font-weight:700; color:#2f9e44; line-height:26px;">${completedCount}</div>
+              <div style="font-size:12px; color:#6b7280;">Completed</div>
+            </td></tr>
+          </table>
+        </td>
+        <td width="50%" style="padding-left:8px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6; border-radius:8px;">
+            <tr><td style="padding:16px;">
+              <div style="font-size:22px; font-weight:700; color:#1f2937; line-height:26px;">${activityTotalCount}</div>
+              <div style="font-size:12px; color:#6b7280;">Updates</div>
+            </td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `
+
   const sections = []
 
   if (completedTasks.length > 0) {
-    const items = completedTasks.map((task) => `<li>${escapeHtml(task.title)}</li>`).join('')
-    sections.push(`<h3>Completed today</h3><ul>${items}</ul>`)
+    const rows = completedTasks
+      .map(
+        (task) => `
+          <tr>
+            <td style="padding:10px 0; border-bottom:1px solid #e5e7eb; font-size:14px; font-weight:600; color:#1f2937;">
+              ${escapeHtml(task.title)}
+            </td>
+          </tr>
+        `,
+      )
+      .join('')
+    sections.push(`
+      <p style="margin:20px 0 4px; font-size:11px; font-weight:700; letter-spacing:0.05em; color:#9ca3af; text-transform:uppercase;">Completed today</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+    `)
   }
 
   if (activityEntries.length > 0) {
-    const items = activityEntries.map((entry) => `<li>${escapeHtml(entry.summary)}</li>`).join('')
+    const rows = activityEntries
+      .map(
+        (entry) => `
+          <tr>
+            <td style="padding:10px 0; border-bottom:1px solid #e5e7eb; font-size:14px; color:#1f2937;">
+              ${escapeHtml(entry.summary)}
+            </td>
+            <td style="padding:10px 0; border-bottom:1px solid #e5e7eb; text-align:right; white-space:nowrap; font-size:12px; color:#6b7280; vertical-align:top;">
+              ${formatTimeLabel(entry.occurred_at)}
+            </td>
+          </tr>
+        `,
+      )
+      .join('')
     const overflowNote =
-      activityOverflowCount > 0 ? `<p>+${activityOverflowCount} more update${activityOverflowCount === 1 ? '' : 's'} today</p>` : ''
-    sections.push(`<h3>Activity</h3><ul>${items}</ul>${overflowNote}`)
+      activityOverflowCount > 0
+        ? `<p style="margin:8px 0 0; font-size:12px; color:#6b7280;">+${activityOverflowCount} more update${activityOverflowCount === 1 ? '' : 's'} today</p>`
+        : ''
+    sections.push(`
+      <p style="margin:20px 0 4px; font-size:11px; font-weight:700; letter-spacing:0.05em; color:#9ca3af; text-transform:uppercase;">Activity</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+      ${overflowNote}
+    `)
   }
 
-  return `<div>${sections.join('')}</div>`
+  return `
+    <p style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.05em; color:#9ca3af; text-transform:uppercase;">EVENING SUMMARY &middot; ${dateLabel}</p>
+    <h1 style="margin:8px 0 0; font-size:22px; line-height:28px; font-weight:700; color:#1f2937;">${buildHeadline(completedCount, activityTotalCount)}</h1>
+    ${statsHtml}
+    ${sections.join('')}
+  `
 }
 
 function buildSubject(completedCount, activityCount) {
@@ -102,6 +187,7 @@ Deno.serve(async () => {
   const now = new Date()
   const { start, end } = computeTodayWindowUtc(now)
   const todayUtc = startOfTodayUtc(now)
+  const dateLabel = formatDateLabel(now)
 
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
@@ -194,7 +280,7 @@ Deno.serve(async () => {
       }
 
       const activityOverflowCount = Math.max(0, activityTotalCount - activityEntries.length)
-      const summaryHtml = buildSummaryHtml(completedTasks, activityEntries, activityOverflowCount)
+      const summaryHtml = buildSummaryHtml(completedTasks, activityEntries, activityOverflowCount, activityTotalCount, dateLabel)
       const toName = profile.name || profile.email
       const subject = buildSubject(completedTasks.length, activityTotalCount)
 

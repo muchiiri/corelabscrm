@@ -1,0 +1,95 @@
+<!--
+  EmailJS template source for feature 27's morning digest. Paste this whole
+  file into EmailJS's template editor (Content tab, HTML mode).
+
+  Variables sent (supabase/functions/morning-digest/index.js): to_email,
+  to_name, subject, digest_html. This template is chrome only - the eyebrow
+  label, headline, stat boxes, and priority-grouped task list all live
+  inside digest_html itself (built server-side, feature 59 Step 4), so
+  there's no headline element here duplicating that.
+
+  UNVERIFIED: whether EmailJS auto-escapes HTML inside a template variable.
+  {{{digest_html}}} (triple-brace) is the Handlebars/Mustache convention for
+  "insert raw, unescaped HTML" - if EmailJS doesn't support that syntax and
+  shows literal <h3>/<ul> tags as visible text in a real test send, try
+  plain {{digest_html}} instead, or check EmailJS's editor for a per-variable
+  raw-HTML/unescape option.
+
+  Colors/fonts are literal hex values from src/index.css's @theme block
+  (light mode only), matching test-email.html's chrome exactly.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your TaskFlow morning digest</title>
+  <style>
+    @media (max-width: 480px) {
+      .tf-container { width: 100% !important; }
+      .tf-card-pad { padding: 20px !important; }
+      .tf-outer-pad { padding-left: 16px !important; padding-right: 16px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f3f4f6;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" class="tf-container" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;">
+          <!-- header -->
+          <tr>
+            <td class="tf-outer-pad" style="padding:0 8px 16px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:28px; height:28px; background-color:#f15b22; border-radius:6px; text-align:center; vertical-align:middle;">
+                    <span style="display:block; color:#ffffff; font-weight:700; font-size:14px; line-height:28px; font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;">T</span>
+                  </td>
+                  <td style="padding-left:10px; vertical-align:middle;">
+                    <span style="font-weight:700; color:#1f2937; font-size:15px;">TaskFlow</span>
+                    <span style="color:#9ca3af; font-size:13px;"> &middot; Morning digest</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- divider -->
+          <tr>
+            <td class="tf-outer-pad" style="padding:0 8px;">
+              <div style="height:3px; line-height:3px; font-size:0; background-color:#f15b22; border-radius:2px;">&nbsp;</div>
+            </td>
+          </tr>
+          <!-- card -->
+          <tr>
+            <td class="tf-outer-pad" style="padding:24px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+                <tr>
+                  <td class="tf-card-pad" style="padding:32px; font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;">
+                    {{{digest_html}}}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- CTA -->
+          <tr>
+            <td class="tf-outer-pad" align="center" style="padding:0 8px 24px;">
+              <a href="https://your-taskflow-domain.example/tasks" style="display:block; background-color:#f15b22; color:#ffffff; font-weight:700; font-size:14px; text-decoration:none; padding:14px 24px; border-radius:8px; text-align:center; font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;">Open TaskFlow</a>
+            </td>
+          </tr>
+          <!-- footer -->
+          <tr>
+            <td class="tf-outer-pad" style="padding:0 8px 32px; color:#9ca3af; font-size:12px; line-height:18px;">
+              <p style="margin:0 0 8px;">
+                Hi {{to_name}}, you're receiving this because task and activity notifications are enabled for your TaskFlow account.<br />
+                <a href="#" style="color:#9ca3af; text-decoration:underline;">Notification settings</a> &middot; <a href="#" style="color:#9ca3af; text-decoration:underline;">Unsubscribe</a>
+              </p>
+              <p style="margin:0;">TaskFlow, Inc. &middot; 2261 Market Street, Suite 480 &middot; San Francisco, CA 94114</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

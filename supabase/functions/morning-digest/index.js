@@ -43,6 +43,21 @@ function startOfTodayUtc(now) {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
 }
 
+// Feature 59: the +3-UTC start-of-day counterpart to computeCutoffUtc's
+// end-of-day bound, used only to split the already-fetched task list into
+// overdue vs due-today counts for the digest's stat boxes - doesn't change
+// what counts as "qualifying" for the query itself.
+function startOfTodayPlus3Utc(now) {
+  const plus3Now = new Date(now.getTime() + PLUS_3_OFFSET_MS)
+  const startOfTodayPlus3 = Date.UTC(plus3Now.getUTCFullYear(), plus3Now.getUTCMonth(), plus3Now.getUTCDate())
+  return new Date(startOfTodayPlus3 - PLUS_3_OFFSET_MS)
+}
+
+function formatDateLabel(now) {
+  const plus3Now = new Date(now.getTime() + PLUS_3_OFFSET_MS)
+  return plus3Now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).toUpperCase()
+}
+
 function groupTasksByPriority(tasks) {
   const groups = { High: [], Medium: [], Low: [] }
   for (const task of tasks) {
@@ -62,19 +77,63 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char])
 }
 
-function buildDigestHtml(groups) {
+function buildDigestHtml(groups, overdueCount, dueTodayCount, dateLabel) {
+  const totalCount = overdueCount + dueTodayCount
+
+  const statsHtml = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 24px;">
+      <tr>
+        <td width="50%" style="padding-right:8px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6; border-radius:8px;">
+            <tr><td style="padding:16px;">
+              <div style="font-size:22px; font-weight:700; color:#e03131; line-height:26px;">${overdueCount}</div>
+              <div style="font-size:12px; color:#6b7280;">Overdue</div>
+            </td></tr>
+          </table>
+        </td>
+        <td width="50%" style="padding-left:8px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6; border-radius:8px;">
+            <tr><td style="padding:16px;">
+              <div style="font-size:22px; font-weight:700; color:#1f2937; line-height:26px;">${dueTodayCount}</div>
+              <div style="font-size:12px; color:#6b7280;">Due today</div>
+            </td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `
+
   const sections = PRIORITY_ORDER.filter((priority) => groups[priority].length > 0)
     .map((priority) => {
-      const items = groups[priority]
+      const rows = groups[priority]
         .map((task) => {
-          const project = task.project_name ? ` &middot; ${escapeHtml(task.project_name)}` : ''
-          return `<li>${escapeHtml(task.title)}${project} - due ${formatDueDate(task.due_at)}</li>`
+          const project = task.project_name ? escapeHtml(task.project_name) : 'No project'
+          return `
+            <tr>
+              <td style="padding:10px 0; border-bottom:1px solid #e5e7eb;">
+                <div style="font-size:14px; font-weight:600; color:#1f2937;">${escapeHtml(task.title)}</div>
+                <div style="font-size:12px; color:#6b7280;">${project}</div>
+              </td>
+              <td style="padding:10px 0; border-bottom:1px solid #e5e7eb; text-align:right; white-space:nowrap; font-size:12px; color:#6b7280; vertical-align:top;">
+                ${formatDueDate(task.due_at)}
+              </td>
+            </tr>
+          `
         })
         .join('')
-      return `<h3>${priority}</h3><ul>${items}</ul>`
+      return `
+        <p style="margin:20px 0 4px; font-size:11px; font-weight:700; letter-spacing:0.05em; color:#9ca3af; text-transform:uppercase;">${priority} priority</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+      `
     })
     .join('')
-  return `<div>${sections}</div>`
+
+  return `
+    <p style="margin:0; font-size:11px; font-weight:700; letter-spacing:0.05em; color:#9ca3af; text-transform:uppercase;">MORNING DIGEST &middot; ${dateLabel}</p>
+    <h1 style="margin:8px 0 0; font-size:22px; line-height:28px; font-weight:700; color:#1f2937;">${totalCount} task${totalCount === 1 ? '' : 's'} need your attention today</h1>
+    ${statsHtml}
+    ${sections}
+  `
 }
 
 async function sendDigestEmail(toEmail, toName, subject, digestHtml) {
@@ -101,6 +160,8 @@ Deno.serve(async () => {
   const now = new Date()
   const cutoffUtc = computeCutoffUtc(now)
   const todayUtc = startOfTodayUtc(now)
+  const todayStartPlus3Utc = startOfTodayPlus3Utc(now)
+  const dateLabel = formatDateLabel(now)
 
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
@@ -155,7 +216,9 @@ Deno.serve(async () => {
         project_name: task.projects ? task.projects.name : null,
       }))
       const groups = groupTasksByPriority(normalizedTasks)
-      const digestHtml = buildDigestHtml(groups)
+      const overdueCount = normalizedTasks.filter((task) => new Date(task.due_at) < todayStartPlus3Utc).length
+      const dueTodayCount = normalizedTasks.length - overdueCount
+      const digestHtml = buildDigestHtml(groups, overdueCount, dueTodayCount, dateLabel)
       const toName = profile.name || profile.email
       const subject = `Your TaskFlow digest - ${tasks.length} task${tasks.length === 1 ? '' : 's'} due`
 
