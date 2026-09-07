@@ -25,6 +25,9 @@ import { computeStatusBreakdown } from '@/lib/computeStatusBreakdown'
 import { STATUS_DOT_CLASS } from '@/components/tasks/StatusBadge'
 import { cn } from '@/lib/utils'
 
+const PRIORITY_ORDER = ['High', 'Medium', 'Low']
+const DAY_DIGEST_MAX_RESULTS = 5
+
 function getGreeting() {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'
@@ -97,6 +100,11 @@ function DashboardPage() {
   const statusBreakdown = computeStatusBreakdown(tasks)
   const tasksDueToday = tasks.filter((task) => isTaskDueToday(task))
   const todayStatusBreakdown = computeStatusBreakdown(tasksDueToday)
+  const projectsById = new Map(projects.map((project) => [project.id, project]))
+  const dayDigestTasks = [...tasksDueToday]
+    .sort((a, b) => PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority))
+    .slice(0, DAY_DIGEST_MAX_RESULTS)
+  const dayDigestOverflowCount = tasksDueToday.length - dayDigestTasks.length
 
   const OVERVIEW_CARD_DEFS = [
     { key: 'total', label: 'Total projects', value: projectStats.total },
@@ -110,23 +118,28 @@ function DashboardPage() {
     {
       key: 'completedThisWeek',
       label: 'Completed this week',
-      borderClass: 'border-l-4 border-l-success',
       numberClass: 'text-success',
     },
     {
       key: 'overdue',
       label: 'Overdue',
-      borderClass: 'border-l-4 border-l-danger',
       numberClass: 'text-danger',
     },
     {
       key: 'inProgress',
       label: 'In progress',
       caption: `across ${projectStats.ongoing} ongoing project${projectStats.ongoing === 1 ? '' : 's'}`,
-      borderClass: 'border-l-4 border-l-status-in-progress',
       numberClass: 'text-status-in-progress',
     },
   ]
+
+  const completedDelta = metrics.completedThisWeek - metrics.completedLastWeek
+  const completedTrend =
+    completedDelta > 0
+      ? { text: `▲ ${completedDelta} vs last week`, className: 'text-success' }
+      : completedDelta < 0
+        ? { text: `▼ ${Math.abs(completedDelta)} vs last week`, className: 'text-danger' }
+        : { text: 'No change vs last week', className: 'text-muted' }
 
   const todayLabel = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
@@ -210,17 +223,65 @@ function DashboardPage() {
           </CardContent>
         </Card>
 
-        {SECONDARY_CARD_DEFS.map(({ key, label, caption, borderClass, numberClass }) => (
-          <Card key={key} className={borderClass}>
+        {SECONDARY_CARD_DEFS.map(({ key, label, caption, numberClass }) => (
+          <Card key={key}>
             <CardHeader>
               <CardTitle className="text-sm font-normal text-muted">{label}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className={cn('text-2xl font-semibold', numberClass)}>{metrics[key]}</p>
+              {key === 'completedThisWeek' && (
+                <p className={cn('mt-1 text-xs font-medium', completedTrend.className)}>{completedTrend.text}</p>
+              )}
               {caption && <p className="mt-1 text-xs text-muted">{caption}</p>}
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-normal text-muted">Day digest</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dayDigestTasks.length === 0 ? (
+              <p className="text-sm text-muted">Nothing due today.</p>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1">
+                  {dayDigestTasks.map((task) => {
+                    const project = task.project_id ? projectsById.get(task.project_id) : null
+                    return (
+                      <button
+                        key={task.id}
+                        type="button"
+                        onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                        className="flex w-full items-start gap-2 rounded-sm px-2 py-1.5 text-left hover:bg-surface-hover"
+                      >
+                        <span
+                          className={cn(
+                            'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                            PRIORITY_DOT_CLASS[task.priority],
+                          )}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm text-text">{task.title}</span>
+                          <span className="block truncate text-xs text-muted">
+                            {project ? project.name : 'No project'}
+                          </span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {dayDigestOverflowCount > 0 && (
+                  <p className="mt-2 px-2 text-xs text-muted">+{dayDigestOverflowCount} more</p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">

@@ -5,9 +5,11 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 export function computeDashboardMetrics(tasks, now = new Date()) {
   const sevenDaysAgo = new Date(now.getTime() - 7 * DAY_MS)
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * DAY_MS)
 
   let tasksToday = 0
   let completedThisWeek = 0
+  let completedLastWeek = 0
   let overdue = 0
   let inProgress = 0
 
@@ -24,6 +26,8 @@ export function computeDashboardMetrics(tasks, now = new Date()) {
       const updatedAt = new Date(task.updated_at)
       if (updatedAt >= sevenDaysAgo && updatedAt <= now) {
         completedThisWeek += 1
+      } else if (updatedAt >= fourteenDaysAgo && updatedAt < sevenDaysAgo) {
+        completedLastWeek += 1
       }
     }
 
@@ -32,5 +36,5 @@ export function computeDashboardMetrics(tasks, now = new Date()) {
     }
   }
 
-  return { tasksToday, completedThisWeek, overdue, inProgress }
+  return { tasksToday, completedThisWeek, completedLastWeek, overdue, inProgress }
 }
