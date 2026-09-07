@@ -638,7 +638,7 @@ function TaskListPage() {
                       </td>
                       <td className="max-w-md py-2.5 pr-4">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="min-w-0 flex-1 truncate font-bold text-text">{task.title}</p>
+                          <p className="min-w-0 max-w-[75%] truncate font-bold text-text">{task.title}</p>
                           {(tagsByTaskId[task.id] ?? []).map((tag) => (
                             <TagBadge key={tag.id} name={tag.name} color={tag.color} />
                           ))}
