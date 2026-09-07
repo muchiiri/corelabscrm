@@ -1,7 +1,9 @@
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useWorkspace } from '@/lib/WorkspaceContext'
+import { useAuth } from '@/lib/AuthContext'
 import { useActivityFeed } from '@/lib/useActivityFeed'
+import { useUnreadActivity } from '@/lib/useUnreadActivity'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 
 // Every logActivity call site writes the actor's display name as the
@@ -19,14 +21,16 @@ function splitActorPrefix(entry) {
 }
 
 function ActivityPanel() {
+  const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { activity, loading } = useActivityFeed(currentWorkspace?.id)
+  const { hasUnread, markAllRead } = useUnreadActivity(currentWorkspace?.id, user?.id)
 
   return (
     <aside className="sticky top-0 flex h-screen w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface px-5 py-6">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-text">Activity</h2>
-        <Button type="button" variant="ghost" size="sm" disabled>
+        <Button type="button" variant="ghost" size="sm" onClick={markAllRead} disabled={!hasUnread}>
           Mark all read
         </Button>
       </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Bell, Plus, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import PageHeader from '@/components/layout/PageHeader'
+import NotificationBell from '@/components/layout/NotificationBell'
 import WorkspaceTab from '@/components/settings/WorkspaceTab'
 import TeamTab from '@/components/settings/TeamTab'
 import BillingTab from '@/components/settings/BillingTab'
@@ -83,16 +84,7 @@ function WorkspaceSettingsPage() {
             >
               <Search className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled
-              aria-label="Notifications"
-              className="bg-surface"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
+            <NotificationBell />
             {isAdmin && (
               <Button
                 type="button"

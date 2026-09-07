@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Plus, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
+import NotificationBell from '@/components/layout/NotificationBell'
 import ClientCreateModal from '@/components/clients/ClientCreateModal'
 import RelationshipBadge from '@/components/clients/RelationshipBadge'
 import MobileClientCard from '@/components/clients/MobileClientCard'
@@ -213,16 +214,7 @@ function ClientsPage() {
             >
               <Search className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled
-              aria-label="Notifications"
-              className="bg-surface"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
+            <NotificationBell />
             {canWrite && (
               <Button type="button" onClick={() => setIsCreateOpen(true)}>
                 <Plus className="h-4 w-4" />

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Bell, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { STATUS_DOT_CLASS } from '@/components/tasks/StatusBadge'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
+import NotificationBell from '@/components/layout/NotificationBell'
 import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
@@ -250,16 +251,7 @@ function ProjectOverviewPage() {
             >
               <Search className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled
-              aria-label="Notifications"
-              className="bg-surface"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
+            <NotificationBell />
             {canWrite && (
               <Button type="button" onClick={() => setIsCreateOpen(true)}>
                 New task

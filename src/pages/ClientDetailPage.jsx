@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Bell, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
+import NotificationBell from '@/components/layout/NotificationBell'
 import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
 import ClientCreateModal from '@/components/clients/ClientCreateModal'
 import { validateInteractionNote } from '@/lib/validateInteractionNote'
@@ -230,16 +231,7 @@ function ClientDetailPage() {
             >
               <Search className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled
-              aria-label="Notifications"
-              className="bg-surface"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
+            <NotificationBell />
             {canWrite && (
               <Button type="button" onClick={() => setIsCreateOpen(true)}>
                 New project

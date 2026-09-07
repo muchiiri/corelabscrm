@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Plus, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
+import NotificationBell from '@/components/layout/NotificationBell'
 import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
@@ -161,16 +162,7 @@ function ProjectsPage() {
             >
               <Search className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled
-              aria-label="Notifications"
-              className="bg-surface"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
+            <NotificationBell />
             {canWrite && (
               <Button type="button" onClick={() => setIsCreateOpen(true)}>
                 <Plus className="h-4 w-4" />

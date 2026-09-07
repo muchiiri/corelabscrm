@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Plus, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/layout/PageHeader'
+import NotificationBell from '@/components/layout/NotificationBell'
 import CompletionTrendChart from '@/components/dashboard/CompletionTrendChart'
 import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { PRIORITY_DOT_CLASS } from '@/components/tasks/PriorityBadge'
@@ -169,16 +170,7 @@ function DashboardPage() {
             >
               <Search className="h-4 w-4" />
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled
-              aria-label="Notifications"
-              className="bg-surface"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
+            <NotificationBell />
             <Button
               type="button"
               onClick={() => setIsCreateOpen(true)}
