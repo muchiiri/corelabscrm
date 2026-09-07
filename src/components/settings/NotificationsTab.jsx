@@ -20,7 +20,7 @@ const NOTIFICATION_ROWS = [
   {
     key: 'notify_due_soon',
     label: 'Due soon',
-    description: 'A morning digest of anything due in the next 48 hours.',
+    description: 'A morning digest of anything due today or already overdue.',
   },
   {
     key: 'notify_project_activity',
