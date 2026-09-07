@@ -23,6 +23,11 @@ const NOTIFICATION_ROWS = [
     description: 'A morning digest of anything due today or already overdue.',
   },
   {
+    key: 'notify_evening_summary',
+    label: 'Evening summary',
+    description: "A wrap-up each evening of tasks you completed and today's workspace activity.",
+  },
+  {
     key: 'notify_project_activity',
     label: 'Project activity',
     description: 'Every status change on projects I am a member of.',

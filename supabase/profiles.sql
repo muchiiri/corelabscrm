@@ -97,3 +97,8 @@ alter table profiles add column if not exists notify_mentions boolean not null d
 alter table profiles add column if not exists notify_due_soon boolean not null default true;
 alter table profiles add column if not exists notify_project_activity boolean not null default false;
 alter table profiles add column if not exists notify_product_news boolean not null default false;
+
+-- Feature 28: gates the evening-summary email (completed tasks + workspace
+-- activity overview). Defaults true like notify_due_soon - a core digest
+-- toggle, not an opt-in extra like notify_project_activity/notify_product_news.
+alter table profiles add column if not exists notify_evening_summary boolean not null default true;

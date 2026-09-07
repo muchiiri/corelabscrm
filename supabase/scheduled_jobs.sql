@@ -1,7 +1,8 @@
 -- Run this in your Supabase project's SQL editor after deploying
--- supabase/functions/morning-digest (see that file's header comment - this
--- project has no Supabase CLI set up yet, so that's a manual deploy via the
--- CLI or the Dashboard's Edge Functions editor).
+-- supabase/functions/morning-digest and supabase/functions/evening-summary
+-- (see each function's header comment - this project has no Supabase CLI
+-- set up yet, so that's a manual deploy via the CLI or the Dashboard's Edge
+-- Functions editor).
 --
 -- Safe to re-run - the extension statements are idempotent, and the job is
 -- unscheduled first if it already exists, then rescheduled, so you can
@@ -29,6 +30,24 @@ select cron.schedule(
   $$
   select net.http_post(
     url := 'https://<YOUR_PROJECT_REF>.supabase.co/functions/v1/morning-digest',
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer <YOUR_SERVICE_ROLE_KEY>',
+      'Content-Type', 'application/json'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+
+select cron.unschedule('evening-summary-daily')
+where exists (select 1 from cron.job where jobname = 'evening-summary-daily');
+
+select cron.schedule(
+  'evening-summary-daily',
+  '0 15 * * *', -- 15:00 UTC = 18:00 +3, matches project-overview.md's fixed send time
+  $$
+  select net.http_post(
+    url := 'https://<YOUR_PROJECT_REF>.supabase.co/functions/v1/evening-summary',
     headers := jsonb_build_object(
       'Authorization', 'Bearer <YOUR_SERVICE_ROLE_KEY>',
       'Content-Type', 'application/json'

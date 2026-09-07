@@ -18,6 +18,7 @@ const NOTIFICATION_COLUMNS = [
   'notify_assigned_to_me',
   'notify_mentions',
   'notify_due_soon',
+  'notify_evening_summary',
   'notify_project_activity',
   'notify_product_news',
 ]
