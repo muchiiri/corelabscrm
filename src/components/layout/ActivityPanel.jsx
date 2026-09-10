@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext'
 import { useActivityFeed } from '@/lib/useActivityFeed'
 import { useUnreadActivity } from '@/lib/useUnreadActivity'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
+import { cn } from '@/lib/utils'
 
 // Every logActivity call site writes the actor's display name as the
 // literal first token(s) of the summary string. If the live actor name/
@@ -24,7 +25,7 @@ function ActivityPanel() {
   const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   const { activity, loading } = useActivityFeed(currentWorkspace?.id)
-  const { hasUnread, markAllRead } = useUnreadActivity(currentWorkspace?.id, user?.id)
+  const { hasUnread, lastReadAt, markAllRead } = useUnreadActivity(currentWorkspace?.id, user?.id)
 
   return (
     <aside className="sticky top-0 flex h-screen w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface px-5 py-6">
@@ -43,11 +44,12 @@ function ActivityPanel() {
         <ul className="flex flex-col gap-1">
           {activity.map((entry) => {
             const split = splitActorPrefix(entry)
+            const isUnread = !lastReadAt || new Date(entry.occurred_at) > new Date(lastReadAt)
             return (
               <li key={entry.id} className="flex gap-2.5 rounded-sm px-1 py-2">
                 <Avatar name={entry.actor?.name} email={entry.actor?.email} className="mt-0.5 h-7 w-7 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs leading-relaxed text-text">
+                  <p className={cn('text-xs leading-relaxed text-text', isUnread && 'font-semibold')}>
                     {split ? (
                       <>
                         <span className="font-semibold">{split.actorLabel}</span>

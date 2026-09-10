@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 
 export function useUnreadActivity(workspaceId, userId) {
   const [hasUnread, setHasUnread] = useState(false)
+  const [lastReadAt, setLastReadAt] = useState(null)
 
   const checkUnread = useCallback(async () => {
     if (!workspaceId || !userId) {
@@ -21,6 +22,8 @@ export function useUnreadActivity(workspaceId, userId) {
       console.error('Failed to load activity read state:', readError)
       return
     }
+
+    setLastReadAt(readRow?.last_read_at ?? null)
 
     let query = supabase
       .from('activity_log')
@@ -71,5 +74,5 @@ export function useUnreadActivity(workspaceId, userId) {
     window.dispatchEvent(new Event('activity-read:changed'))
   }, [workspaceId, userId])
 
-  return { hasUnread, markAllRead }
+  return { hasUnread, lastReadAt, markAllRead }
 }
