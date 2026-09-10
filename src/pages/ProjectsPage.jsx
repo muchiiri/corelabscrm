@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/avatar'
 import PageHeader from '@/components/layout/PageHeader'
 import NotificationBell from '@/components/layout/NotificationBell'
 import ProjectCreateModal from '@/components/projects/ProjectCreateModal'
+import { SWATCH_CLASS } from '@/components/tags/TagPicker'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
 import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
@@ -24,18 +25,25 @@ import { cn } from '@/lib/utils'
 const REPORT_HEADERS = ['Project', 'Client', 'Completion %', 'Completed', 'Total']
 
 // Local to this page - same reasoning as TaskListPage's STATUS_PILL_CLASS
-// (feature 32c). Literal class strings, not `border-t-${status}`
+// (feature 32c). Literal class strings, not `text-${status}`
 // interpolation, so Tailwind's build-time scanner can see them.
-const PROJECT_STATUS_BORDER_CLASS = {
-  Active: 'border-t-success',
-  Completed: 'border-t-secondary',
-  Archived: 'border-t-faint',
-}
-
 const PROJECT_STATUS_TEXT_CLASS = {
   Active: 'text-success',
   Completed: 'text-secondary',
   Archived: 'text-faint',
+}
+
+// Grid card border and List view dot both key off label_color (a
+// user-chosen tag, not status) - same tag color tokens TagPicker's
+// SWATCH_CLASS already uses, literal for the same reason as
+// PROJECT_STATUS_TEXT_CLASS above.
+const PROJECT_LABEL_BORDER_CLASS = {
+  gray: 'border-t-tag-gray-text',
+  red: 'border-t-tag-red-text',
+  orange: 'border-t-tag-orange-text',
+  green: 'border-t-tag-green-text',
+  blue: 'border-t-tag-blue-text',
+  purple: 'border-t-tag-purple-text',
 }
 
 const STATUS_TABS = ['All', 'Active', 'Completed', 'Archived']
@@ -48,7 +56,7 @@ function ProjectsPage() {
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
 
-  const [viewMode, setViewMode] = useState('grid')
+  const [viewMode, setViewMode] = useState('list')
   const [statusFilter, setStatusFilter] = useState('All')
   const [tasks, setTasks] = useState([])
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -222,7 +230,7 @@ function ProjectsPage() {
             return (
               <Card
                 key={project.id}
-                className={cn('border-t-4', PROJECT_STATUS_BORDER_CLASS[project.status])}
+                className={cn('border-t-4', PROJECT_LABEL_BORDER_CLASS[project.label_color || 'gray'])}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -299,12 +307,17 @@ function ProjectsPage() {
                   return (
                     <tr key={project.id} className="border-b border-border last:border-b-0">
                       <td className="px-4 py-2.5">
-                        <Link
-                          to={`/projects/${project.id}`}
-                          className="font-bold text-text hover:underline"
-                        >
-                          {project.name}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn('h-2.5 w-2.5 shrink-0 rounded-full', SWATCH_CLASS[project.label_color || 'gray'])}
+                          />
+                          <Link
+                            to={`/projects/${project.id}`}
+                            className="font-bold text-text hover:underline"
+                          >
+                            {project.name}
+                          </Link>
+                        </div>
                       </td>
                       <td className="px-4 py-2.5 text-muted">{client ? client.name : 'No client'}</td>
                       <td className="px-4 py-2.5">
