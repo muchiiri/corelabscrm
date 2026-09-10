@@ -28,6 +28,7 @@ function TaskCreateModal({
   tags,
   onCreateTag,
   projects,
+  clients = [],
   initialValues,
 }) {
   const { user } = useAuth()
@@ -132,6 +133,75 @@ function TaskCreateModal({
                 }}
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="modalTaskClientId" className={CAPTION_CLASS}>
+              Client
+            </Label>
+            <Select id="modalTaskClientId" name="clientId" value={values.clientId} onChange={handleChange}>
+              <option value="">No client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="modalTaskRecurrenceFrequency" className={CAPTION_CLASS}>
+              Repeat
+            </Label>
+            <Select
+              id="modalTaskRecurrenceFrequency"
+              name="recurrenceFrequency"
+              value={values.recurrenceFrequency}
+              onChange={handleChange}
+              disabled={!values.dueAt}
+            >
+              <option value="">Does not repeat</option>
+              <option value="Daily">Daily</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+            </Select>
+            {!values.dueAt && (
+              <p className="text-xs text-muted">Set a due date to repeat this task.</p>
+            )}
+            {values.recurrenceFrequency && (
+              <div className="mt-1 flex gap-4">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="modalTaskRecurrenceInterval" className={CAPTION_CLASS}>
+                    Every
+                  </Label>
+                  <Input
+                    id="modalTaskRecurrenceInterval"
+                    name="recurrenceInterval"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={values.recurrenceInterval}
+                    onChange={handleChange}
+                    aria-invalid={Boolean(errors.recurrenceInterval)}
+                  />
+                  {errors.recurrenceInterval && (
+                    <p className="text-xs text-danger">{errors.recurrenceInterval}</p>
+                  )}
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="modalTaskRecurrenceEndDate" className={CAPTION_CLASS}>
+                    Ends on
+                  </Label>
+                  <Input
+                    id="modalTaskRecurrenceEndDate"
+                    name="recurrenceEndDate"
+                    type="date"
+                    value={values.recurrenceEndDate}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">

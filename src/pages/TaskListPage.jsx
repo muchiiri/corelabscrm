@@ -823,6 +823,7 @@ function TaskListPage() {
         tags={tags}
         onCreateTag={createTag}
         projects={projects}
+        clients={clients}
         initialValues={{}}
       />
     </div>

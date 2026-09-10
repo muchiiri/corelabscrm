@@ -10,6 +10,7 @@ import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
+import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { supabase } from '@/lib/supabase'
 import { getCalendarGridDates } from '@/lib/getCalendarGridDates'
@@ -50,6 +51,7 @@ function CalendarPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
+  const { clients } = useWorkspaceClients(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date()
@@ -327,6 +329,7 @@ function CalendarPage() {
         tags={tags}
         onCreateTag={createTag}
         projects={projects}
+        clients={clients}
         initialValues={createDefaults ?? {}}
       />
     </div>

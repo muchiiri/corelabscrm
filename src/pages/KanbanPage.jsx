@@ -17,6 +17,7 @@ import TaskCreateModal from '@/components/tasks/TaskCreateModal'
 import { useWorkspace } from '@/lib/WorkspaceContext'
 import { useWorkspaceMembers } from '@/lib/useWorkspaceMembers'
 import { useWorkspaceProjects } from '@/lib/useWorkspaceProjects'
+import { useWorkspaceClients } from '@/lib/useWorkspaceClients'
 import { useWorkspaceTags } from '@/lib/useWorkspaceTags'
 import { useMyWorkspaceRole } from '@/lib/useMyWorkspaceRole'
 import { useAuth } from '@/lib/AuthContext'
@@ -46,6 +47,7 @@ function KanbanPage() {
   const { currentWorkspace } = useWorkspace()
   const { members } = useWorkspaceMembers(currentWorkspace.id)
   const { projects } = useWorkspaceProjects(currentWorkspace.id)
+  const { clients } = useWorkspaceClients(currentWorkspace.id)
   const { tags, createTag } = useWorkspaceTags(currentWorkspace.id)
   const { role: myRole } = useMyWorkspaceRole(currentWorkspace.id)
   const canWrite = myRole !== 'Viewer'
@@ -352,6 +354,7 @@ function KanbanPage() {
         tags={tags}
         onCreateTag={createTag}
         projects={projects}
+        clients={clients}
         initialValues={createDefaults ?? {}}
       />
     </div>
